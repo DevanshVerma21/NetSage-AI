@@ -1,0 +1,23 @@
+@import 'tailwindcss';
+
+/* A network-operations console: dark slate, one accent, monospace for anything a device
+   actually printed. Tailwind v4 takes its theme from CSS, so the palette lives here
+   rather than in a JS config file. */
+@theme {
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-slate-950 text-slate-200 antialiased;
+}
+
+/* Cisco show output. `pre` with wrapping disabled so column alignment survives; the
+   container scrolls instead of the text reflowing, because a reflowed `show vlan brief`
+   is unreadable. Evidence is never truncated. */
+.cisco-output {
+  @apply font-mono text-[12.5px] leading-relaxed whitespace-pre text-emerald-200/90;
+}
