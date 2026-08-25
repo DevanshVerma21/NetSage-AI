@@ -133,9 +133,7 @@ export function HumanReview() {
             tone="deterministic"
             label="Deterministic Rule Engine"
             title={`${diagnosis.rule_findings.length} finding(s) — ${
-              diagnosis.rule_ids?.join(', ') ||
-              [...new Set(diagnosis.rule_findings.map((f) => f.rule_id))].sort().join(', ') ||
-              'none'
+              diagnosis.rule_ids?.join(', ') || 'none'
             }`}
             subtitle="What the engine found independently of the model. These are also the only source of the simulated fix."
           >

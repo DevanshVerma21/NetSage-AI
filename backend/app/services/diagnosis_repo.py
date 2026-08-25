@@ -23,7 +23,7 @@ from backend.app.services.diagnose import DiagnosisResult
 from backend.app.services.record_store import DIAGNOSES_FILE, JsonCollection
 
 collection: JsonCollection[DiagnosisRecord] = JsonCollection(
-    DIAGNOSES_FILE, DiagnosisRecord, "diagnosis_id"
+    DIAGNOSES_FILE, DiagnosisRecord, "diagnosis_id", derived_fields=("rule_ids",)
 )
 
 

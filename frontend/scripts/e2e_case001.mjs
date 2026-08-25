@@ -217,6 +217,11 @@ async function main() {
     check('the deterministic findings travel with the proposal',
       (diagnosis?.rule_findings || []).length > 0)
     check(
+      'rule_ids is served as a normal JSON field',
+      JSON.stringify(diagnosis?.rule_ids) === JSON.stringify(['R004', 'R005', 'R006']),
+      JSON.stringify(diagnosis?.rule_ids),
+    )
+    check(
       'no credential in the diagnosis payload',
       !/api_key|AIza|sk-ant/i.test(JSON.stringify(diagnosis)),
     )
@@ -249,6 +254,9 @@ async function main() {
     check('GET /api/reviews/{id} resolves', fetchedReview.status === 200)
     check('it names the diagnosis to load next',
       fetchedReview.body?.diagnosis_id === diagnosis.diagnosis_id)
+    const noRunYet = await call(`/fixes?review_id=${review.review_id}`)
+    check('GET /api/fixes?review_id= is empty before a fix is applied',
+      Array.isArray(noRunYet.body) && noRunYet.body.length === 0)
 
     // --- 8. the simulated fix ------------------------------------------------------------
     step('8. POST /api/fixes/apply — simulated fix and verification')
@@ -272,6 +280,12 @@ async function main() {
     check('the disclaimer is stored verbatim', run?.disclaimer === DISCLAIMER, JSON.stringify(run?.disclaimer))
     const finalDiagnosis = await call(`/diagnoses/${diagnosis.diagnosis_id}`)
     check('the diagnosis is now applied', finalDiagnosis.body?.applied === true)
+    const byReview = await call(`/fixes?review_id=${review.review_id}`)
+    check(
+      'the run is now findable by review_id — the filter the Fix page uses',
+      byReview.body?.length === 1 && byReview.body[0].run_id === run.run_id,
+      JSON.stringify(byReview.body?.map((item) => item.run_id)),
+    )
 
     step('9. re-applying the same review')
     const again = await call('/fixes/apply', { method: 'POST', body: { review_id: review.review_id } })

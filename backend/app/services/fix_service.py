@@ -36,8 +36,16 @@ collection: JsonCollection[FixRunRecord] = JsonCollection(FIX_RUNS_FILE, FixRunR
 
 
 def all_records(
-    diagnosis_id: Optional[str] = None, case_id: Optional[str] = None
+    diagnosis_id: Optional[str] = None,
+    case_id: Optional[str] = None,
+    review_id: Optional[str] = None,
 ) -> list[FixRunRecord]:
+    """Stored fix runs, narrowed by any combination of the three filters.
+
+    ``review_id`` is the most specific of them: a review may be applied once, so it selects
+    at most one run. Every filter is optional and they compose, so passing none still
+    returns the whole collection as before.
+    """
     records = collection.all()
     if diagnosis_id:
         wanted = diagnosis_id.strip().lower()
@@ -45,6 +53,9 @@ def all_records(
     if case_id:
         wanted_case = case_id.strip().lower()
         records = [r for r in records if (r.case_id or "").lower() == wanted_case]
+    if review_id:
+        wanted_review = review_id.strip().lower()
+        records = [r for r in records if (r.review_id or "").lower() == wanted_review]
     return records
 
 

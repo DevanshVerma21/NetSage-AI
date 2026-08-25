@@ -54,6 +54,65 @@ def test_the_diagnosis_carries_the_deterministic_findings(client, diagnosed):
     assert rule_ids == checked["rule_ids"], "one engine, not two"
 
 
+def test_rule_ids_is_a_normal_json_field(client, diagnosed):
+    """A client reads the summary rather than deriving it from the findings."""
+    assert diagnosed["rule_ids"] == ["R004", "R005", "R006"]
+    assert diagnosed["rule_ids"] == sorted(
+        {finding["rule_id"] for finding in diagnosed["rule_findings"]}
+    ), "the field must agree with the findings it summarises"
+
+    # Present on every route that serves a diagnosis, not just the one that created it.
+    fetched = client.get(f"/api/diagnoses/{diagnosed['diagnosis_id']}").json()
+    assert fetched["rule_ids"] == diagnosed["rule_ids"]
+    listed = client.get("/api/diagnoses", params={"case_id": "CASE-001"}).json()
+    assert listed[0]["rule_ids"] == diagnosed["rule_ids"]
+
+
+def test_rule_ids_is_read_only(client):
+    """It is derived, so a client cannot supply one — and cannot smuggle one in."""
+    response = client.post(
+        "/api/diagnose",
+        json={"case_id": "CASE-001", "provider": "mock", "rule_ids": ["R001"]},
+    )
+    assert response.status_code == 422, "the request model forbids extra keys"
+
+    from backend.app.models.records import DiagnosisRecord
+
+    record = DiagnosisRecord.model_validate(
+        {**client.post("/api/diagnose", json={"case_id": "CASE-001", "provider": "mock"}).json(),
+         "rule_ids": ["R999"]}
+    )
+    assert record.rule_ids == ["R004", "R005", "R006"], "a supplied value is discarded"
+
+
+def test_rule_ids_is_not_written_to_the_stored_file(client, diagnosed, isolated_store):
+    """Served to clients, kept out of storage: the findings stay the only stored truth.
+
+    A derived value on disk is a value that can disagree with what it was derived from, and
+    it would also change the Phase 3 file format for no gain.
+    """
+    stored = json.loads((isolated_store / DIAGNOSES_FILE).read_text(encoding="utf-8"))
+    assert stored, "the diagnosis should have been persisted"
+    assert "rule_ids" not in stored[0]
+    assert stored[0]["rule_findings"], "the source of the field is what is stored"
+
+    # A record loaded back from that file still serves the field.
+    fetched = client.get(f"/api/diagnoses/{diagnosed['diagnosis_id']}").json()
+    assert fetched["rule_ids"] == ["R004", "R005", "R006"]
+
+
+def test_a_stored_file_that_carries_rule_ids_still_loads(client, diagnosed, isolated_store):
+    """Forward tolerance: the extra key is ignored, not fatal, despite extra='forbid'."""
+    path = isolated_store / DIAGNOSES_FILE
+    stored = json.loads(path.read_text(encoding="utf-8"))
+    stored[0]["rule_ids"] = ["R001", "R002"]
+    path.write_text(json.dumps(stored), encoding="utf-8")
+
+    fetched = client.get(f"/api/diagnoses/{diagnosed['diagnosis_id']}")
+    assert fetched.status_code == 200
+    assert fetched.json()["rule_ids"] == ["R004", "R005", "R006"], "recomputed, not trusted"
+
+
 def test_the_independent_checks_are_stored(client, diagnosed):
     integrity = diagnosed["evidence_integrity"]
     assert integrity["status"] in ("passed", "partial", "failed")

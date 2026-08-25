@@ -42,11 +42,11 @@ export function FixVerify() {
         setDiagnosis(diagnosisRecord)
 
         // A fix already simulated for this review is shown rather than re-run: a second
-        // apply is a 409, and the stored result is the one that matters.
-        const runs = await getFixes({ diagnosis_id: reviewRecord.diagnosis_id })
+        // apply is a 409, and the stored result is the one that matters. The server filters
+        // by review_id, so at most one run can come back.
+        const runs = await getFixes({ review_id: reviewRecord.review_id })
         if (!active) return
-        const existing = runs.find((item) => item.review_id === reviewRecord.review_id)
-        if (existing) setRun(existing)
+        if (runs.length > 0) setRun(runs[0])
       } catch (error) {
         if (active) setLoadError(error)
       } finally {
@@ -86,9 +86,8 @@ export function FixVerify() {
   if (!review || !diagnosis) return null
 
   const permitted = review.verdict === 'accepted' || review.verdict === 'edited'
-  const ruleIds = [...new Set(diagnosis.rule_findings.map((f) => f.rule_id))].sort()
   const targetedRuleIds =
-    review.corrected_rule_ids?.length > 0 ? review.corrected_rule_ids : ruleIds
+    review.corrected_rule_ids?.length > 0 ? review.corrected_rule_ids : diagnosis.rule_ids
   const fixSteps =
     review.corrected_fix_steps?.length > 0
       ? review.corrected_fix_steps

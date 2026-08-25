@@ -20,7 +20,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 from backend.app.models.diagnosis import (
     AIDiagnosis,
@@ -152,6 +152,22 @@ class DiagnosisRecord(BaseModel):
     applied: bool = False
     review_id: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def _ignore_derived_fields(cls, data: object) -> object:
+        """Drop derived keys on the way in, so a dump can be re-validated.
+
+        ``rule_ids`` is computed from ``rule_findings`` and is serialised for clients, but
+        this model forbids extra keys — so a record that went out through ``model_dump()``
+        and comes back in (a round trip in :func:`mark_applied`, or a stored file written by
+        some future version that keeps the field) would otherwise be rejected for carrying
+        its own output. The findings remain the single source of truth either way: whatever
+        value arrives is discarded and recomputed.
+        """
+        if isinstance(data, dict) and "rule_ids" in data:
+            return {key: value for key, value in data.items() if key != "rule_ids"}
+        return data
+
     @model_validator(mode="after")
     def _applied_requires_a_review(self) -> "DiagnosisRecord":
         """``applied`` without a review would mean the gate was bypassed somewhere."""
@@ -171,8 +187,17 @@ class DiagnosisRecord(BaseModel):
     def effective_confidence(self) -> str:
         return self.confidence.effective_confidence
 
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def rule_ids(self) -> list[str]:
+        """The distinct rule ids behind ``rule_findings``, sorted.
+
+        Serialised, so a client reads ``"rule_ids": ["R004", "R005", "R006"]`` rather than
+        deriving it from the findings and risking a different notion of "distinct". It is
+        read-only and always recomputed from the findings; nothing can set it. It is left
+        out of the stored files (see :class:`JsonCollection`) so the on-disk format is
+        unchanged and cannot drift out of step with the findings it summarises.
+        """
         return sorted({finding.rule_id for finding in self.rule_findings})
 
     def mutations(self, only_rule_ids: Optional[list[str]] = None) -> list[dict]:

@@ -197,6 +197,41 @@ def test_fix_runs_can_be_listed_and_fetched(client, diagnosed):
     assert client.get("/api/fixes/FIX-000000000000").status_code == 404
 
 
+def test_fix_runs_can_be_filtered_by_review_id(client, diagnosed):
+    """The Fix & Verify page asks by review id, so the server must answer by review id."""
+    review = _accept(client, diagnosed["diagnosis_id"])
+    run = client.post("/api/fixes/apply", json={"review_id": review["review_id"]}).json()
+
+    by_review = client.get("/api/fixes", params={"review_id": review["review_id"]}).json()
+    assert [r["run_id"] for r in by_review] == [run["run_id"]]
+    assert len(by_review) == 1, "a review may be applied once, so it selects one run"
+
+    # An unknown review is an empty list, not an error: the page is asking whether a run
+    # exists yet, and 'not yet' is a normal answer.
+    assert client.get("/api/fixes", params={"review_id": "REV-000000000000"}).json() == []
+
+    # The filters compose, and are case-insensitive like the others.
+    both = client.get(
+        "/api/fixes",
+        params={"review_id": review["review_id"], "diagnosis_id": diagnosed["diagnosis_id"]},
+    ).json()
+    assert [r["run_id"] for r in both] == [run["run_id"]]
+    assert (
+        client.get(
+            "/api/fixes",
+            params={"review_id": review["review_id"], "case_id": "CASE-777"},
+        ).json()
+        == []
+    )
+    lowered = client.get(
+        "/api/fixes", params={"review_id": review["review_id"].lower()}
+    ).json()
+    assert [r["run_id"] for r in lowered] == [run["run_id"]]
+
+    # And the older callers are untouched.
+    assert len(client.get("/api/fixes").json()) == 1
+
+
 def test_the_full_demo_flow_in_order(client):
     """Broken case → diagnosis → refusal → human review → fix → verification."""
     case = client.get("/api/cases/CASE-001").json()

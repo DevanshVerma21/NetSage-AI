@@ -40,10 +40,20 @@ def records_dir() -> Path:
 class JsonCollection(Generic[T]):
     """A list of Pydantic records persisted as one JSON array."""
 
-    def __init__(self, filename: str, model: type[T], id_field: str) -> None:
+    def __init__(
+        self,
+        filename: str,
+        model: type[T],
+        id_field: str,
+        derived_fields: tuple[str, ...] = (),
+    ) -> None:
         self.filename = filename
         self.model = model
         self.id_field = id_field
+        # Fields a record computes from its own data. They are served to clients but not
+        # written to disk: storing a value that is derived from a neighbouring field is how
+        # a file ends up disagreeing with itself after an edit.
+        self.derived_fields = derived_fields
 
     # --- location ----------------------------------------------------------------------
 
@@ -106,4 +116,8 @@ class JsonCollection(Generic[T]):
         raise KeyError(f"no {self.model.__name__} with {self.id_field}={record_id}")
 
     def _write(self, records: list[T]) -> None:
-        write_json(self.path, [record.model_dump(mode="json") for record in records])
+        exclude = set(self.derived_fields) or None
+        write_json(
+            self.path,
+            [record.model_dump(mode="json", exclude=exclude) for record in records],
+        )

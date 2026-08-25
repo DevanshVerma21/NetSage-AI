@@ -239,8 +239,14 @@ def apply_fix(body: ApplyFixRequestBody) -> FixRunRecord:
 def list_fixes(
     diagnosis_id: Optional[str] = Query(default=None),
     case_id: Optional[str] = Query(default=None),
+    review_id: Optional[str] = Query(
+        default=None,
+        description="Return only the run applied from this review. At most one run exists.",
+    ),
 ) -> list[FixRunRecord]:
-    return fix_service.all_records(diagnosis_id=diagnosis_id, case_id=case_id)
+    return fix_service.all_records(
+        diagnosis_id=diagnosis_id, case_id=case_id, review_id=review_id
+    )
 
 
 @api_router.get("/fixes/{run_id}", response_model=FixRunRecord, tags=["fixes"])
