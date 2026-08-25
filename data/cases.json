@@ -1,0 +1,220 @@
+[
+  {
+    "case_id": "CASE-001",
+    "title": "HR PC gets an IP but cannot reach the file server in VLAN 30",
+    "symptom": "PC-HR in VLAN 20 has a valid IP address and can ping its own default gateway, but every attempt to reach the file server SRV-FILES at 192.168.30.10 times out. Users in Sales report the same problem reaching that server. Nothing was changed on the PCs.",
+    "topology_note": "Single multilayer switch lab (simulated). SW1 is a Catalyst 3560 doing inter-VLAN routing with ip routing enabled. VLAN 10 SALES = 192.168.10.0/24, VLAN 20 HR = 192.168.20.0/24, VLAN 30 SERVERS = 192.168.30.0/24. PC-SALES on Gi0/3 in VLAN 10, PC-HR on Gi0/1 in VLAN 20, SRV-FILES on Gi0/2 in VLAN 30. Each VLAN is supposed to have an SVI on SW1 acting as its default gateway. No router and no ACLs are present in this lab.",
+    "show_outputs": [
+      {
+        "device": "PC-HR",
+        "command": "ping 192.168.20.1",
+        "output": "PC-HR> ping 192.168.20.1\n\nPinging 192.168.20.1 with 32 bytes of data:\n\nReply from 192.168.20.1: bytes=32 time<1ms TTL=255\nReply from 192.168.20.1: bytes=32 time<1ms TTL=255\nReply from 192.168.20.1: bytes=32 time<1ms TTL=255\nReply from 192.168.20.1: bytes=32 time<1ms TTL=255\n\nPing statistics for 192.168.20.1:\n    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),\nApproximate round trip times in milli-seconds:\n    Minimum = 0ms, Maximum = 0ms, Average = 0ms"
+      },
+      {
+        "device": "PC-HR",
+        "command": "ping 192.168.30.10",
+        "output": "PC-HR> ping 192.168.30.10\n\nPinging 192.168.30.10 with 32 bytes of data:\n\nRequest timed out.\nRequest timed out.\nRequest timed out.\nRequest timed out.\n\nPing statistics for 192.168.30.10:\n    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)"
+      },
+      {
+        "device": "PC-HR",
+        "command": "ipconfig /all",
+        "output": "FastEthernet0 Connection:(default port)\n\n   Connection-specific DNS Suffix..:\n   Physical Address................: 000C.29A4.1B02\n   Link-local IPv6 Address.........: FE80::20C:29FF:FEA4:1B02\n   IPv4 Address....................: 192.168.20.15\n   Subnet Mask.....................: 255.255.255.0\n   Default Gateway.................: 192.168.20.1\n   DNS Servers.....................: 192.168.10.50\n   DHCP Servers....................: 192.168.20.1"
+      },
+      {
+        "device": "SW1",
+        "command": "show vlan brief",
+        "output": "VLAN Name                             Status    Ports\n---- -------------------------------- --------- -------------------------------\n1    default                          active    Gi0/4, Gi0/5, Gi0/6, Gi0/7\n                                                Gi0/8, Gi0/9, Gi0/10, Gi0/11\n10   SALES                            active    Gi0/3\n20   HR                               active    Gi0/1\n1002 fddi-default                     act/unsup\n1003 token-ring-default               act/unsup\n1004 fddinet-default                  act/unsup\n1005 trnet-default                    act/unsup"
+      },
+      {
+        "device": "SW1",
+        "command": "show ip interface brief",
+        "output": "Interface              IP-Address      OK? Method Status                Protocol\nGigabitEthernet0/1     unassigned      YES unset  up                    up\nGigabitEthernet0/2     unassigned      YES unset  up                    up\nGigabitEthernet0/3     unassigned      YES unset  up                    up\nVlan1                  unassigned      YES unset  administratively down down\nVlan10                 192.168.10.1    YES manual up                    up\nVlan20                 192.168.20.1    YES manual up                    up\nVlan30                 192.168.30.1    YES manual administratively down down"
+      },
+      {
+        "device": "SW1",
+        "command": "show ip route",
+        "output": "Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP\n       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area\n       * - candidate default, U - per-user static route, o - ODR\n\nGateway of last resort is not set\n\n      192.168.10.0/24 is variably subnetted, 2 subnets, 2 masks\nC        192.168.10.0/24 is directly connected, Vlan10\nL        192.168.10.1/32 is directly connected, Vlan10\n      192.168.20.0/24 is variably subnetted, 2 subnets, 2 masks\nC        192.168.20.0/24 is directly connected, Vlan20\nL        192.168.20.1/32 is directly connected, Vlan20"
+      },
+      {
+        "device": "SW1",
+        "command": "show ip arp",
+        "output": "Protocol  Address          Age (min)  Hardware Addr   Type   Interface\nInternet  192.168.10.1            -   0060.5C12.AB01  ARPA   Vlan10\nInternet  192.168.10.25           4   0002.1755.C3D2  ARPA   Vlan10\nInternet  192.168.20.1            -   0060.5C12.AB02  ARPA   Vlan20\nInternet  192.168.20.15           2   000C.29A4.1B02  ARPA   Vlan20"
+      },
+      {
+        "device": "SW1",
+        "command": "show running-config interface Vlan30",
+        "output": "Building configuration...\n\nCurrent configuration : 87 bytes\n!\ninterface Vlan30\n ip address 192.168.30.1 255.255.255.0\n shutdown\nend"
+      },
+      {
+        "device": "SW1",
+        "command": "show interfaces Gi0/2 switchport",
+        "output": "Name: Gi0/2\nSwitchport: Enabled\nAdministrative Mode: static access\nOperational Mode: static access\nAdministrative Trunking Encapsulation: dot1q\nNegotiation of Trunking: Off\nAccess Mode VLAN: 30 (Inactive)\nTrunking Native Mode VLAN: 1 (default)\nVoice VLAN: none"
+      }
+    ],
+    "expected_fault": "VLAN 30 was never created in the VLAN database on SW1. The Vlan30 SVI exists and holds 192.168.30.1/24 but is administratively shut down, so the SERVERS subnet has no active gateway, SW1 has no connected route to 192.168.30.0/24, and access port Gi0/2 shows Access Mode VLAN 30 as Inactive.",
+    "osi_layer": "L2",
+    "concept_tag": "VLAN",
+    "severity": "High",
+    "expected_root_cause_keywords": [
+      "VLAN 30",
+      "vlan database",
+      "not created",
+      "SVI",
+      "shutdown",
+      "inter-VLAN"
+    ],
+    "expected_rule_ids": ["R004", "R005", "R006"],
+    "expected_fix_steps": [
+      "On SW1, create the missing VLAN: configure terminal / vlan 30 / name SERVERS / exit",
+      "Bring up the gateway: interface Vlan30 / no shutdown / exit",
+      "Verify the VLAN database: show vlan brief (VLAN 30 must appear as active with Gi0/2)",
+      "Verify the SVI: show ip interface brief (Vlan30 must be up/up)",
+      "Verify routing: show ip route (192.168.30.0/24 must appear as directly connected)",
+      "Confirm the fix from the client: ping 192.168.30.10 from PC-HR"
+    ],
+    "security_relevant": false,
+    "source_label": "simulated-lab",
+    "intended_flows": [
+      {
+        "src": "PC-HR",
+        "dst": "SRV-FILES",
+        "proto": "tcp",
+        "port": 445,
+        "expect": "permit",
+        "note": "HR staff must reach the file server"
+      },
+      {
+        "src": "PC-HR",
+        "dst": "PC-SALES",
+        "proto": "ip",
+        "expect": "permit",
+        "note": "Inter-VLAN traffic between Sales and HR is allowed in this lab"
+      }
+    ],
+    "lab_state": {
+      "devices": [
+        {
+          "name": "SW1",
+          "kind": "multilayer_switch",
+          "ip_routing_enabled": true,
+          "vlans": [
+            { "vlan_id": 1, "name": "default", "status": "active" },
+            { "vlan_id": 10, "name": "SALES", "status": "active" },
+            { "vlan_id": 20, "name": "HR", "status": "active" }
+          ],
+          "interfaces": [
+            {
+              "name": "GigabitEthernet0/1",
+              "switchport_mode": "access",
+              "vlan": 20,
+              "admin_state": "up",
+              "oper_state": "up",
+              "description": "PC-HR"
+            },
+            {
+              "name": "GigabitEthernet0/2",
+              "switchport_mode": "access",
+              "vlan": 30,
+              "admin_state": "up",
+              "oper_state": "up",
+              "description": "SRV-FILES"
+            },
+            {
+              "name": "GigabitEthernet0/3",
+              "switchport_mode": "access",
+              "vlan": 10,
+              "admin_state": "up",
+              "oper_state": "up",
+              "description": "PC-SALES"
+            },
+            {
+              "name": "Vlan10",
+              "ip": "192.168.10.1",
+              "mask": "255.255.255.0",
+              "is_svi": true,
+              "vlan": 10,
+              "admin_state": "up",
+              "oper_state": "up"
+            },
+            {
+              "name": "Vlan20",
+              "ip": "192.168.20.1",
+              "mask": "255.255.255.0",
+              "is_svi": true,
+              "vlan": 20,
+              "admin_state": "up",
+              "oper_state": "up"
+            },
+            {
+              "name": "Vlan30",
+              "ip": "192.168.30.1",
+              "mask": "255.255.255.0",
+              "is_svi": true,
+              "vlan": 30,
+              "admin_state": "shutdown",
+              "oper_state": "down"
+            }
+          ],
+          "routes": []
+        }
+      ],
+      "hosts": [
+        {
+          "name": "PC-HR",
+          "ip": "192.168.20.15",
+          "mask": "255.255.255.0",
+          "gateway": "192.168.20.1",
+          "dns_servers": ["192.168.10.50"],
+          "vlan": 20,
+          "connected_device": "SW1",
+          "connected_interface": "GigabitEthernet0/1"
+        },
+        {
+          "name": "PC-SALES",
+          "ip": "192.168.10.25",
+          "mask": "255.255.255.0",
+          "gateway": "192.168.10.1",
+          "dns_servers": ["192.168.10.50"],
+          "vlan": 10,
+          "connected_device": "SW1",
+          "connected_interface": "GigabitEthernet0/3"
+        },
+        {
+          "name": "SRV-FILES",
+          "ip": "192.168.30.10",
+          "mask": "255.255.255.0",
+          "gateway": "192.168.30.1",
+          "vlan": 30,
+          "connected_device": "SW1",
+          "connected_interface": "GigabitEthernet0/2"
+        }
+      ],
+      "links": [
+        {
+          "a_device": "SW1",
+          "a_interface": "GigabitEthernet0/1",
+          "b_device": "PC-HR",
+          "b_interface": "FastEthernet0",
+          "mode": "access",
+          "access_vlan": 20
+        },
+        {
+          "a_device": "SW1",
+          "a_interface": "GigabitEthernet0/2",
+          "b_device": "SRV-FILES",
+          "b_interface": "FastEthernet0",
+          "mode": "access",
+          "access_vlan": 30
+        },
+        {
+          "a_device": "SW1",
+          "a_interface": "GigabitEthernet0/3",
+          "b_device": "PC-SALES",
+          "b_interface": "FastEthernet0",
+          "mode": "access",
+          "access_vlan": 10
+        }
+      ]
+    }
+  }
+]

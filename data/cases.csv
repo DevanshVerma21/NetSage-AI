@@ -1,0 +1,109 @@
+case_id,title,symptom,topology_note,show_outputs,expected_fault,osi_layer,concept_tag,severity,security_relevant,expected_rule_ids,expected_fix_steps,source_label
+CASE-001,HR PC gets an IP but cannot reach the file server in VLAN 30,"PC-HR in VLAN 20 has a valid IP address and can ping its own default gateway, but every attempt to reach the file server SRV-FILES at 192.168.30.10 times out. Users in Sales report the same problem reaching that server. Nothing was changed on the PCs.","Single multilayer switch lab (simulated). SW1 is a Catalyst 3560 doing inter-VLAN routing with ip routing enabled. VLAN 10 SALES = 192.168.10.0/24, VLAN 20 HR = 192.168.20.0/24, VLAN 30 SERVERS = 192.168.30.0/24. PC-SALES on Gi0/3 in VLAN 10, PC-HR on Gi0/1 in VLAN 20, SRV-FILES on Gi0/2 in VLAN 30. Each VLAN is supposed to have an SVI on SW1 acting as its default gateway. No router and no ACLs are present in this lab.","### PC-HR :: ping 192.168.20.1
+PC-HR> ping 192.168.20.1
+
+Pinging 192.168.20.1 with 32 bytes of data:
+
+Reply from 192.168.20.1: bytes=32 time<1ms TTL=255
+Reply from 192.168.20.1: bytes=32 time<1ms TTL=255
+Reply from 192.168.20.1: bytes=32 time<1ms TTL=255
+Reply from 192.168.20.1: bytes=32 time<1ms TTL=255
+
+Ping statistics for 192.168.20.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+Approximate round trip times in milli-seconds:
+    Minimum = 0ms, Maximum = 0ms, Average = 0ms
+
+### PC-HR :: ping 192.168.30.10
+PC-HR> ping 192.168.30.10
+
+Pinging 192.168.30.10 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.30.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### PC-HR :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   Physical Address................: 000C.29A4.1B02
+   Link-local IPv6 Address.........: FE80::20C:29FF:FEA4:1B02
+   IPv4 Address....................: 192.168.20.15
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.20.1
+   DNS Servers.....................: 192.168.10.50
+   DHCP Servers....................: 192.168.20.1
+
+### SW1 :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    Gi0/4, Gi0/5, Gi0/6, Gi0/7
+                                                Gi0/8, Gi0/9, Gi0/10, Gi0/11
+10   SALES                            active    Gi0/3
+20   HR                               active    Gi0/1
+1002 fddi-default                     act/unsup
+1003 token-ring-default               act/unsup
+1004 fddinet-default                  act/unsup
+1005 trnet-default                    act/unsup
+
+### SW1 :: show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1     unassigned      YES unset  up                    up
+GigabitEthernet0/2     unassigned      YES unset  up                    up
+GigabitEthernet0/3     unassigned      YES unset  up                    up
+Vlan1                  unassigned      YES unset  administratively down down
+Vlan10                 192.168.10.1    YES manual up                    up
+Vlan20                 192.168.20.1    YES manual up                    up
+Vlan30                 192.168.30.1    YES manual administratively down down
+
+### SW1 :: show ip route
+Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP
+       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area
+       * - candidate default, U - per-user static route, o - ODR
+
+Gateway of last resort is not set
+
+      192.168.10.0/24 is variably subnetted, 2 subnets, 2 masks
+C        192.168.10.0/24 is directly connected, Vlan10
+L        192.168.10.1/32 is directly connected, Vlan10
+      192.168.20.0/24 is variably subnetted, 2 subnets, 2 masks
+C        192.168.20.0/24 is directly connected, Vlan20
+L        192.168.20.1/32 is directly connected, Vlan20
+
+### SW1 :: show ip arp
+Protocol  Address          Age (min)  Hardware Addr   Type   Interface
+Internet  192.168.10.1            -   0060.5C12.AB01  ARPA   Vlan10
+Internet  192.168.10.25           4   0002.1755.C3D2  ARPA   Vlan10
+Internet  192.168.20.1            -   0060.5C12.AB02  ARPA   Vlan20
+Internet  192.168.20.15           2   000C.29A4.1B02  ARPA   Vlan20
+
+### SW1 :: show running-config interface Vlan30
+Building configuration...
+
+Current configuration : 87 bytes
+!
+interface Vlan30
+ ip address 192.168.30.1 255.255.255.0
+ shutdown
+end
+
+### SW1 :: show interfaces Gi0/2 switchport
+Name: Gi0/2
+Switchport: Enabled
+Administrative Mode: static access
+Operational Mode: static access
+Administrative Trunking Encapsulation: dot1q
+Negotiation of Trunking: Off
+Access Mode VLAN: 30 (Inactive)
+Trunking Native Mode VLAN: 1 (default)
+Voice VLAN: none","VLAN 30 was never created in the VLAN database on SW1. The Vlan30 SVI exists and holds 192.168.30.1/24 but is administratively shut down, so the SERVERS subnet has no active gateway, SW1 has no connected route to 192.168.30.0/24, and access port Gi0/2 shows Access Mode VLAN 30 as Inactive.",L2,VLAN,High,no,R004; R005; R006,"1. On SW1, create the missing VLAN: configure terminal / vlan 30 / name SERVERS / exit
+2. Bring up the gateway: interface Vlan30 / no shutdown / exit
+3. Verify the VLAN database: show vlan brief (VLAN 30 must appear as active with Gi0/2)
+4. Verify the SVI: show ip interface brief (Vlan30 must be up/up)
+5. Verify routing: show ip route (192.168.30.0/24 must appear as directly connected)
+6. Confirm the fix from the client: ping 192.168.30.10 from PC-HR",simulated-lab

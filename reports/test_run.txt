@@ -1,0 +1,14 @@
+﻿============================= test session starts =============================
+collected 101 items
+
+tests\test_cases_csv_sync.py ......                                      [  5%]
+tests\test_dataset.py ............ss                                     [ 19%]
+tests\test_engine_baseline.py ...                                        [ 22%]
+tests\test_golden_expected_faults.py .....                               [ 27%]
+tests\test_netutils.py ..........................                        [ 53%]
+tests\test_rule_r001_r002_ip.py .............                            [ 66%]
+tests\test_rule_r003_r004_gateway_interface.py ............              [ 78%]
+tests\test_rule_r005_r006_vlan_routing.py ................               [ 94%]
+tests\test_show_output_consistency.py ......                             [100%]
+
+======================== 99 passed, 2 skipped in 0.19s ========================

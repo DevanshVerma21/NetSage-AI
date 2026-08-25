@@ -1,0 +1,51 @@
+﻿==============================================================================
+CASE-001  HR PC gets an IP but cannot reach the file server in VLAN 30
+  concept=VLAN  osi=L2  severity=High  source=simulated-lab
+==============================================================================
+SYMPTOM: PC-HR in VLAN 20 has a valid IP address and can ping its own default gateway, but every attempt to reach the file server SRV-FILES at 192.168.30.10 times out. Users in Sales report the same problem reaching that server. Nothing was changed on the PCs.
+
+DETERMINISTIC FINDINGS: 5
+
+[1] R004 Interface down  (Critical / L1 / INTERFACE_CONFIG)
+    SW1 Vlan30 is administratively down (shutdown is configured), so subnet 192.168.30.1/255.255.255.0 is unreachable.
+      evidence: SW1 / Vlan30 -> admin_state=shutdown line_protocol=down ip=192.168.30.1
+      affected: SW1, Vlan30
+      confirm with: show ip interface brief  /  show interfaces status
+
+[2] R005 Missing VLAN  (Critical / L2 / VLAN)
+    SW1 has SVI Vlan30 for VLAN 30, but VLAN 30 was never created in the VLAN database. The SVI can never come up, so that subnet has no gateway.
+      evidence: SW1 / Vlan30 -> SVI for VLAN 30, ip address 192.168.30.1 255.255.255.0
+      evidence: SW1 / vlan database -> VLANs present: 1 (default), 10 (SALES), 20 (HR)
+      affected: SW1, Vlan30, VLAN30
+      confirm with: show vlan brief
+
+[3] R005 Missing VLAN  (High / L2 / VLAN)
+    Host SRV-FILES is in VLAN 30, but VLAN 30 does not exist in the VLAN database on SW1.
+      evidence: SRV-FILES -> assigned to VLAN 30 via SW1
+      evidence: SW1 / vlan database -> VLANs present: 1 (default), 10 (SALES), 20 (HR)
+      affected: SRV-FILES, SW1, VLAN30
+      confirm with: show vlan brief
+
+[4] R005 Missing VLAN  (High / L2 / VLAN)
+    SW1 GigabitEthernet0/2 is an access port in VLAN 30, but VLAN 30 does not exist in the VLAN database on SW1.
+      evidence: SW1 / GigabitEthernet0/2 -> switchport access vlan 30
+      evidence: SW1 / vlan database -> VLANs present: 1 (default), 10 (SALES), 20 (HR)
+      affected: SW1, GigabitEthernet0/2, VLAN30
+      confirm with: show vlan brief
+
+[5] R006 Missing route  (High / L3 / ROUTING)
+    SW1 (first-hop gateway for PC-HR) has no route to 192.168.30.0/24, so the intended flow PC-HR -> SRV-FILES cannot be delivered. Checked at the first Layer 3 hop only.
+      evidence: SW1 / routing table -> C 192.168.10.0/24 via Vlan10; C 192.168.20.0/24 via Vlan20
+      evidence: intended flow -> PC-HR -> SRV-FILES (tcp/445) is expected to be permitted
+      evidence: lookup result -> no connected, static, dynamic or default route matches 192.168.30.10
+      affected: SW1, PC-HR, SRV-FILES
+      confirm with: show ip route
+
+------------------------------------------------------------------------------
+EXPECTED-FAULT CHECK: PASS
+  expected: R004, R005, R006
+  fired:    R004, R005, R006
+
+==============================================================================
+SUMMARY: 1/1 cases match their expected_rule_ids
+==============================================================================
