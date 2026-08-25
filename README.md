@@ -18,15 +18,15 @@ Approved architecture: [`docs/PLAN.md`](docs/PLAN.md)
 |---|---|:--:|
 | **1** | Foundation · six mandatory rules (R001–R006) fully tested · representative case · rule-checker CLI | ✅ **complete** |
 | **2** | AI layer: prompts · provider abstraction · Gemini · mock · evidence verifier · reconciler · confidence capping | ✅ **complete** |
-| 3 | API · server-enforced review gate · Fix Simulator · verification | ⏳ next |
-| 4 | Frontend vertical slice, CASE-001 proven end to end | — |
+| **3** | API · server-enforced review gate · Fix Simulator · deterministic before/after verification | ✅ **complete** |
+| 4 | Frontend vertical slice, CASE-001 proven end to end | ⏳ next |
 | 5 | Expand to 40 cases · optional rules R007–R015 | — |
 | 6 | Dashboard · Responsible AI log from a live batch run | — |
 | 7 | Deliverables · docs · demo script | — |
 
-**Phase 2 test result: 259 passed, 2 skipped, 9 deselected** offline, plus **9/9 live
-Gemini smoke tests passed**. The 2 skips are deliberate Phase 5 dataset gates; the 9
-deselected are the live tests, excluded by default so `pytest` never touches the network.
+**Phase 3 test result: 335 passed, 2 skipped, 9 deselected** offline. The 2 skips are
+deliberate Phase 5 dataset gates; the 9 deselected are the live provider tests, excluded by
+default so `pytest` never touches the network.
 Full log: [`reports/test_run.txt`](reports/test_run.txt).
 
 ---
@@ -56,7 +56,54 @@ python -m backend.scripts.live_diagnose_demo CASE-001
 # 6. Regenerate deliverables after editing the dataset or a prompt
 python -m backend.scripts.export_cases_csv
 python -m backend.scripts.update_prompt_registry
+
+# 7. Run the API (Phase 3) — http://127.0.0.1:8000/docs
+uvicorn backend.app.main:app --reload
+
+# 8. Prove the whole gate end to end over HTTP (mock provider, temp storage)
+python scripts/smoke_api.py
 ```
+
+### API (Phase 3)
+
+Every route is under `/api`. Nothing in this surface connects to a device: there is no SSH,
+Telnet, Netmiko, or command execution anywhere in the codebase, and no endpoint accepts a
+configuration change from the client.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/health` | Version, cases loaded, rules registered, whether a provider is configured (never the key) |
+| GET | `/api/cases` | Case summaries; filters `category`, `severity`, `osi_layer`, `q` |
+| GET | `/api/cases/{case_id}` | One full case, including its show outputs |
+| POST | `/api/rules/check` | The deterministic engine only. `ai_used` is always `false` |
+| POST | `/api/diagnose` | Run the AI pipeline; persists as `awaiting_human_review`, `applied=false` |
+| GET | `/api/diagnoses` · `/api/diagnoses/{id}` | Stored proposals with every independent check |
+| POST | `/api/reviews` | Record a human verdict: accepted · edited · rejected |
+| GET | `/api/reviews` · `/api/reviews/{id}` | The audit trail |
+| POST | `/api/fixes/apply` | Simulate an **approved** fix against a copy of the lab model |
+| GET | `/api/fixes` · `/api/fixes/{run_id}` | Fix runs with before/after verification |
+
+The gate is enforced server-side, from stored records, never from client state:
+
+| Situation | Result |
+|---|---|
+| Apply with no review at all | **409** |
+| Apply a **rejected** diagnosis | **409** |
+| Apply the same diagnosis twice | **409** |
+| Review the same diagnosis twice | **409** — the audit trail is not overwritten |
+| `edited` with no reason code or no correction | **422** |
+| `rejected` with no reason code or no notes | **422** |
+| A request containing a mutation, command, or device | **422** — no request model has such a field |
+
+`POST /api/fixes/apply` takes a `review_id` (or a `diagnosis_id`, whose review the server
+looks up itself) and nothing else. The mutations come from the reviewed diagnosis's own
+deterministic findings, so a client cannot describe a change it wants made. Every fix run
+carries `execution_scope: "simulated_lab_model"` and the verbatim disclaimer *"Verified
+against simulated lab model — not executed on physical hardware or Packet Tracer."*
+
+Records are written to `data/diagnoses.json`, `data/reviews.json` and `data/fix_runs.json`
+(atomic writes, missing files tolerated). Those three files are gitignored: they are
+per-run output, not source.
 
 ### Configuration
 

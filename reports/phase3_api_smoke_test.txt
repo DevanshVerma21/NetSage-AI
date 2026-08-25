@@ -1,0 +1,44 @@
+1. GET /api/health
+  status: ok
+  cases_loaded: 1
+  mandatory_rules: ['R001', 'R002', 'R003', 'R004', 'R005', 'R006']
+  provider_configured (bool only, never the key): True
+  execution_scope: simulated_lab_model
+
+2. POST /api/diagnose  {case_id: CASE-001, provider: mock}
+  http: 201
+  status: awaiting_human_review
+  applied: False
+  rule_ids: ['R004', 'R005', 'R006']
+
+3. POST /api/fixes/apply with no review yet
+  http: 409
+  detail: diagnosis 'DIAG-ba11ea82b1ab' is awaiting_human_review: a human review is required before any fix can be applied.
+
+4. POST /api/reviews  {verdict: accepted}
+  http: 201
+  agreement: {'root_cause': True, 'osi_layer': True, 'category': True}
+
+5. POST /api/fixes/apply  {review_id}
+  http: 201
+  findings_before: 5
+  findings_after: 0
+  resolved_rule_ids: ['R004', 'R005', 'R006']
+  new_rule_ids: []
+  remaining_rule_ids: []
+  verification_result: verified
+  execution_scope: simulated_lab_model
+  disclaimer: Verified against simulated lab model — not executed on physical hardware or Packet Tracer.
+    - add_vlan [R005] applied: created VLAN 30 (VLAN30) on SW1
+    - set_interface_admin_state [R004] applied: set SW1 Vlan30 admin state to up
+    - add_static_route [R006] SKIPPED: not needed — R006 was already resolved by an earlier step in this fix.
+
+6. re-apply the same review
+  http: 409
+  detail: diagnosis 'DIAG-ba11ea82b1ab' has already had a fix applied (fix run FIX-5019007c3a44).
+  diagnosis.applied: True
+
+7. no secret anywhere in the responses
+  leaked: none
+
+SMOKE TEST: PASS

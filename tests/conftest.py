@@ -139,3 +139,44 @@ def flows() -> list[IntendedFlow]:
 def rule_ids(findings) -> list[str]:
     """Sorted unique rule ids from a findings list — the usual assertion target."""
     return sorted({f.rule_id for f in findings})
+
+
+# --- Phase 3: API and record-store fixtures ------------------------------------------------
+
+
+@pytest.fixture
+def isolated_store(tmp_path, monkeypatch):
+    """Point the record store at a temporary directory.
+
+    Every API test writes diagnoses, reviews and fix runs. Without this they would append to
+    the repository's real ``data/*.json`` files, so a test run would leave the working tree
+    dirty and tests would see each other's records. The case dataset is still read from the
+    real ``data/cases.json`` — that file is only ever read.
+    """
+    from backend.app.services import record_store
+
+    monkeypatch.setattr(record_store, "records_dir", lambda: tmp_path)
+    return tmp_path
+
+
+@pytest.fixture
+def client(isolated_store):
+    """A TestClient over the real app, with storage isolated to a temp directory."""
+    from fastapi.testclient import TestClient
+
+    from backend.app.main import create_app
+
+    with TestClient(create_app()) as test_client:
+        yield test_client
+
+
+@pytest.fixture
+def diagnosed(client):
+    """One persisted diagnosis for CASE-001, produced through the mock provider.
+
+    Returns the parsed diagnosis record body. Uses the API rather than the service directly
+    so the fixture exercises the same path the demo flow does.
+    """
+    response = client.post("/api/diagnose", json={"case_id": "CASE-001", "provider": "mock"})
+    assert response.status_code == 201, response.text
+    return response.json()

@@ -11,6 +11,14 @@ venv/
 .env.local
 *.key
 
+# Runtime records written by the API (diagnoses, human reviews, simulated fix runs).
+# Ignored deliberately: they are per-run output, not source, and a demo would otherwise
+# dirty the working tree. The Responsible-AI log is a separate, deliberate export under
+# reports/ rather than these raw files.
+data/diagnoses.json
+data/reviews.json
+data/fix_runs.json
+
 # Node / frontend
 node_modules/
 dist/
@@ -20,3 +28,6 @@ dist/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+
+AI_Problem Statement.docx
