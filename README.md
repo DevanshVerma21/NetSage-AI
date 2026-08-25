@@ -17,16 +17,17 @@ Approved architecture: [`docs/PLAN.md`](docs/PLAN.md)
 | Phase | Scope | Status |
 |---|---|:--:|
 | **1** | Foundation · six mandatory rules (R001–R006) fully tested · representative case · rule-checker CLI | ✅ **complete** |
-| 2 | AI layer: prompts · provider abstraction · Gemini · mock · evidence verifier · reconciler | ⏳ next |
-| 3 | API · server-enforced review gate · Fix Simulator · verification | — |
+| **2** | AI layer: prompts · provider abstraction · Gemini · mock · evidence verifier · reconciler · confidence capping | ✅ **complete** |
+| 3 | API · server-enforced review gate · Fix Simulator · verification | ⏳ next |
 | 4 | Frontend vertical slice, CASE-001 proven end to end | — |
 | 5 | Expand to 40 cases · optional rules R007–R015 | — |
 | 6 | Dashboard · Responsible AI log from a live batch run | — |
 | 7 | Deliverables · docs · demo script | — |
 
-**Phase 1 test result: 99 passed, 2 skipped** (the 2 skips are deliberate Phase 5 dataset
-gates that arm themselves once the dataset reaches 40 cases). Full log:
-[`reports/test_run.txt`](reports/test_run.txt).
+**Phase 2 test result: 259 passed, 2 skipped, 9 deselected** offline, plus **9/9 live
+Gemini smoke tests passed**. The 2 skips are deliberate Phase 5 dataset gates; the 9
+deselected are the live tests, excluded by default so `pytest` never touches the network.
+Full log: [`reports/test_run.txt`](reports/test_run.txt).
 
 ---
 
@@ -38,7 +39,7 @@ Requires Python 3.11+. Everything in Phase 1 runs offline with no API key.
 # 1. Install backend dependencies
 pip install -r backend/requirements.txt
 
-# 2. Run the test suite
+# 2. Run the test suite (fully offline — no key, no network)
 python -m pytest tests -q
 
 # 3. Run the deterministic rule checker (no AI, no network)
@@ -46,8 +47,15 @@ python -m backend.app.rules.cli --list-rules
 python -m backend.app.rules.cli --case CASE-001
 python -m backend.app.rules.cli --all --check-expected
 
-# 4. Regenerate the cases.csv deliverable after any dataset edit
+# 4. Run the AI pipeline offline through the mock provider
+python -m backend.scripts.phase2_demo
+
+# 5. Run one live Gemini diagnosis (skips cleanly with no key)
+python -m backend.scripts.live_diagnose_demo CASE-001
+
+# 6. Regenerate deliverables after editing the dataset or a prompt
 python -m backend.scripts.export_cases_csv
+python -m backend.scripts.update_prompt_registry
 ```
 
 ### Configuration
@@ -58,14 +66,115 @@ cp .env.example .env      # then fill in GEMINI_API_KEY
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `LLM_PROVIDER` | `gemini` | `gemini` (default live) · `mock` (offline, no key) · `anthropic` (optional) |
-| `LLM_MODEL` | `gemini-3.7-flash` | Current stable Gemini Flash model. `gemini-2.0-flash` is shut down. |
+| `LLM_PROVIDER` | `gemini` | `gemini` (default live) · `mock` (offline, no key) · `anthropic` (declared, not implemented) |
+| `LLM_MODEL` | `gemini-3.6-flash` | Gemini Flash model. See the note below. |
 | `GEMINI_API_KEY` | — | Free key from <https://aistudio.google.com/apikey> |
 
-Secrets live only in `.env`, which is gitignored. No key is ever hard-coded or logged.
-With `LLM_PROVIDER=mock` the whole prototype runs with no key at all, and every stored
-record is stamped `provider: "mock"` so a mock answer can never be mistaken for a real
-model answer.
+**On the model choice.** Verified against the live API on 2026-08-25:
+`gemini-3.6-flash`, `gemini-3.5-flash` and `gemini-3.5-flash-lite` all work.
+`gemini-3.7-flash` is the newest stable Flash model but currently returns a persistent
+`503 "experiencing high demand"` on the free tier, so it is not the default — switch to it
+with one line in `.env` when capacity returns. `gemini-2.0-flash` is **shut down**.
+
+Secrets live only in `.env`, which is gitignored. No key is hard-coded, logged, echoed into
+an exception message, or returned to a caller. With `LLM_PROVIDER=mock` the whole prototype
+runs with no key at all, and every record is stamped `provider: "mock"` so a mock answer can
+never be mistaken for a real model answer.
+
+---
+
+## What Phase 2 delivers — the AI diagnosis pipeline
+
+```
+DiagnoseRequest ─► Provider ─► AIDiagnosis ─► Evidence Verifier ─► Reconciler ─► Capping
+   (5 sections)   (gemini/mock)  (schema)      (deterministic)     (deterministic)
+                                                      │                 │            │
+                                                      └─────────────────┴────────────┘
+                                                    status = awaiting_human_review
+                                                            applied = false
+```
+
+### Three independent checks on every AI answer
+
+The prompt *asks* for good behaviour; these three components *verify* it. None of them
+involves a language model.
+
+**1. Evidence verifier** — every citation's `excerpt` must actually appear in the output of
+the `source_command` it names. Whitespace and case are normalised (a reflowed line is still
+a real citation); fabrication is not forgiven. A failed citation is recorded and shown to
+the reviewer, never silently dropped. Verdicts: `passed` · `partial` · `failed`.
+
+**2. Reconciler** — compares the AI's diagnosis against the deterministic findings:
+`agree` · `partial` · `ai_only` · `rules_only` · `conflict`.
+
+**3. Confidence capping** — the model's confidence is an **input**, never the output:
+
+| Condition | Ceiling |
+|---|---|
+| evidence verification `failed` | **LOW** |
+| AI / rule `conflict` | MEDIUM |
+| `insufficient_evidence = true` | MEDIUM |
+| `ai_only` (nothing corroborates it) | MEDIUM |
+| HIGH claimed with < 2 verified citations | MEDIUM |
+| otherwise | the model's value is preserved |
+
+`model_confidence` and `effective_confidence` are stored **separately**, so a reviewer can
+always see the gap between what the AI claimed and what survived checking. Caps compose —
+the lowest ceiling wins.
+
+### Prompt library
+
+| File | Role |
+|---|---|
+| [`prompts/diagnose_prompt.md`](prompts/diagnose_prompt.md) | primary prompt; 16 hard constraints + **3 worked examples** |
+| [`prompts/system_guardrails.md`](prompts/system_guardrails.md) | shared safety preamble, prepended to every call |
+| [`prompts/fix_plan_prompt.md`](prompts/fix_plan_prompt.md) | approved root cause → ordered Cisco CLI + verification |
+| [`prompts/registry.json`](prompts/registry.json) | name → version → SHA-256, stamped onto every diagnosis |
+
+The three worked examples teach three distinct behaviours: **evidence-gated confidence**
+(inter-VLAN/ACL, `medium` until route/ACL evidence exists), **confident diagnosis when
+evidence is decisive** (DHCP wrong `default-router`, three corroborating citations), and
+**declining to guess** (`insufficient_evidence: true`, empty `fix_steps`, a specific next
+command).
+
+Prompt hashes are computed with line endings normalised, so a Windows and a Linux checkout
+of the same commit produce the same hash. `load_prompt` **refuses** to load a prompt whose
+hash disagrees with the registry — a forgotten `update_prompt_registry` fails loudly instead
+of stamping diagnoses with a stale identity.
+
+### Provider abstraction
+
+| Provider | Role |
+|---|---|
+| `gemini` | default live provider — `google-genai`, stable `models.generate_content`, native structured output |
+| `mock` | deterministic, offline, zero-key; derives its diagnosis from the rule findings and quotes real lines from the supplied output |
+| `anthropic` | declared stub — reports `is_available() == False` so the factory can never route real traffic into an unimplemented path |
+
+A test asserts that **no module outside `backend/app/ai/gemini_provider.py` imports the
+Gemini SDK**, so the abstraction is enforced rather than merely intended. Without a key the
+factory falls back to mock *and says so* in a warning attached to the result.
+
+### Two things the live API taught us
+
+Both were caught by writing an actual live test rather than trusting local validation:
+
+1. **The stable endpoint's schema dialect is narrower than the SDK's local validation.**
+   `t_schema()` converted our Pydantic model happily, but the API rejected it:
+   `Unknown name "additional_properties" ... Cannot find field`. Pydantic's
+   `extra="forbid"` emits `additionalProperties`, and nested models emit `$defs`/`$ref` —
+   none of which the `generate_content` Schema proto accepts. Rather than weaken the models
+   (strict validation is still worth having when parsing the response),
+   [`ai/schema_utils.py`](backend/app/ai/schema_utils.py) derives a sanitised wire schema
+   from public Pydantic API only. The offline check now asserts against the *proto's*
+   constraints, not merely that conversion didn't raise.
+
+2. **`gemini-3.7-flash` is saturated on the free tier.** Four attempts over 4.5 minutes all
+   returned 503. The provider now retries transient 429/5xx with exponential backoff, and
+   the default model is `gemini-3.6-flash`.
+
+Live result on CASE-001: **4/4 citations verified** across four different commands, correct
+root cause, `agree`, HIGH confidence upheld — see
+[`reports/live_gemini_smoke_test.txt`](reports/live_gemini_smoke_test.txt).
 
 ---
 
@@ -138,17 +247,30 @@ backend/
     config.py            settings from .env (no hard-coded keys)
     netutils.py          pure IPv4 helpers (total functions, never raise)
     store.py             atomic JSON persistence, no database
-    models/              enums · lab_state · case
+    models/              enums · lab_state · case · diagnosis (the AI schema)
     rules/
       engine.py          @rule registry, Finding model, runner
       checks/            ip_addressing · gateway · interface · vlan · routing
       cli.py             the deliverable rule checker
-    services/            case_repo
-  scripts/               export_cases_csv
+    ai/
+      base.py            LLMProvider protocol · DiagnoseRequest · ProviderResult
+      factory.py         provider selection + no-key fallback
+      gemini_provider.py default live provider (the only Gemini import in the codebase)
+      mock_provider.py   deterministic offline provider
+      schema_utils.py    Pydantic → Gemini wire-schema conversion
+      prompt_loader.py   versioned prompt loading + hash enforcement
+      evidence_verifier.py   deterministic citation checking
+      reconciler.py      AI vs rules, five states
+      confidence.py      the capping table
+    services/            case_repo · diagnose (the 10-step pipeline)
+  scripts/               export_cases_csv · update_prompt_registry
+                         phase2_demo · live_diagnose_demo
 data/                    cases.json (source of truth) · cases.csv (generated)
+prompts/                 diagnose_prompt · system_guardrails · fix_plan_prompt · registry.json
 docs/                    PLAN.md — the approved architecture
-reports/                 rule_checker_sample_output.txt · test_run.txt
-tests/                   101 tests
+reports/                 rule_checker_sample_output · test_run
+                         phase2_pipeline_demo · live_gemini_smoke_test
+tests/                   268 tests (259 offline + 9 live)
 ```
 
 ---

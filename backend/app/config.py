@@ -25,7 +25,12 @@ class Settings(BaseSettings):
 
     # --- AI provider -----------------------------------------------------------------
     llm_provider: Literal["gemini", "mock", "anthropic"] = "gemini"
-    llm_model: str = "gemini-3.7-flash"
+
+    # gemini-3.6-flash rather than gemini-3.7-flash: 3.7 is the newest stable Flash model,
+    # but it returns a persistent 503 ("experiencing high demand") on the free tier, which
+    # makes it unusable for a demo. 3.6-flash is the newest Flash model with capacity, and
+    # this is a one-line change in .env when 3.7 frees up.
+    llm_model: str = "gemini-3.6-flash"
 
     gemini_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None

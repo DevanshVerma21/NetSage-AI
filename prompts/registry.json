@@ -1,0 +1,22 @@
+{
+  "registry_version": 1,
+  "hash_algorithm": "sha256",
+  "hash_note": "computed over the file text with CRLF normalised to LF",
+  "prompts": {
+    "diagnose_prompt": {
+      "file": "diagnose_prompt.md",
+      "version": "1.0.0",
+      "sha256": "3c34c86f4095fbeb1c705a18e029d661d2f14b469f32eb060ebbabb99dd21d19"
+    },
+    "system_guardrails": {
+      "file": "system_guardrails.md",
+      "version": "1.0.0",
+      "sha256": "7fc107aa93da0dc0742a42a32d2ec0bcb08947f886d438720366b06a4dae01d0"
+    },
+    "fix_plan_prompt": {
+      "file": "fix_plan_prompt.md",
+      "version": "1.0.0",
+      "sha256": "8794cb367aaf38545bdd206c6f37a99ea20fba377bafcd8eb57b4cf454fba5c3"
+    }
+  }
+}

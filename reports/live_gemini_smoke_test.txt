@@ -1,0 +1,71 @@
+﻿==============================================================================
+LIVE GEMINI DIAGNOSIS — CASE-001
+provider=gemini  model=gemini-3.6-flash
+==============================================================================
+SYMPTOM: PC-HR in VLAN 20 has a valid IP address and can ping its own default gateway, but every attempt to reach the file server SRV-FILES at 192.168.30.10 times out. Users in Sales report the same problem reaching that server. Nothing was changed on the PCs.
+
+  case            : CASE-001
+  provider/model  : gemini / gemini-3.6-flash
+  prompt          : diagnose_prompt v1.0.0 (3c34c86f4095…)
+  rule findings   : 5 (R004, R005, R006)
+  root cause      : VLAN 30 is missing from the VLAN database on SW1, causing access port Gi0/2 to be inactive. Additionally, SVI Vlan30 is administratively shut down. Consequently, SW1 lacks a active Layer 3 interface and connected route for 192.168.30.0/24, preventing inter-VLAN routing to SRV-FILES.
+  category / OSI  : VLAN / L2
+  model conf.     : HIGH (0.95)
+  effective conf. : HIGH (0.95)
+  evidence        : 4/4 verified -> integrity=passed
+  reconciliation  : agree
+  status          : awaiting_human_review  (applied=False)
+
+  Root cause (verbatim from the model):
+    VLAN 30 is missing from the VLAN database on SW1, causing access port Gi0/2 to be inactive. Additionally, SVI Vlan30 is administratively shut down. Consequently, SW1 lacks a active Layer 3 interface and connected route for 192.168.30.0/24, preventing inter-VLAN routing to SRV-FILES.
+
+  Evidence citations (4):
+    [1] VERIFIED  source_command: show vlan brief
+        excerpt: 10   SALES                            active    Gi0/3
+        why    : VLAN 30 is missing from the active VLAN list on SW1, which inactivates any switchport assigned to VLAN 30.
+    [2] VERIFIED  source_command: show interfaces Gi0/2 switchport
+        excerpt: Access Mode VLAN: 30 (Inactive)
+        why    : Confirms port Gi0/2 connected to SRV-FILES is inactive because VLAN 30 does not exist in SW1's VLAN database.
+    [3] VERIFIED  source_command: show ip interface brief
+        excerpt: Vlan30                 192.168.30.1    YES manual administratively down down
+        why    : SVI Vlan30 is administratively down, preventing the Layer 3 gateway for VLAN 30 from functioning.
+    [4] VERIFIED  source_command: show running-config interface Vlan30
+        excerpt:  shutdown
+        why    : Confirms explicit shutdown configuration on interface Vlan30.
+
+  Verification: 4/4 citation(s) verified against the supplied output.
+  All citations located in the output of the command they name.
+
+  Reconciliation (agree): The AI's VLAN diagnosis is corroborated by R005. 2 further finding(s) (R004, R006) fall outside that category and are most likely consequences of the same underlying fault.
+
+  Confidence: Confidence HIGH (0.95) — the model's own confidence, which the independent checks did not require reducing.
+
+  Next command: show ip route
+
+  Proposed fix steps (2) — recommendations only:
+    1. [SW1] risk=low
+         configure terminal
+         vlan 30
+         name SERVERS
+         exit
+       rationale: Create VLAN 30 in the VLAN database so port Gi0/2 becomes active and SVI Vlan30 can transition up.
+    2. [SW1] risk=low
+         interface Vlan30
+         no shutdown
+         end
+       rationale: Enable SVI Vlan30 to bring up the 192.168.30.1 default gateway and populate the 192.168.30.0/24 connected route in SW1's routing table.
+
+  Alternative hypotheses (1):
+    - SRV-FILES host network interface failure or wrong IP/default gateway.
+      less likely because: While possible on the end host, the switch infrastructure itself has active blocking faults (missing VLAN 30 database entry and shutdown SVI Vlan30) that guarantee traffic failure at the gateway level regardless of host state.
+
+  Notes for reviewer:
+    High confidence based on four corroborating show outputs confirming both the missing VLAN database entry and the shutdown SVI state. No disruptive risk in applying the fix steps.
+
+  Token usage: {'prompt_tokens': 9047, 'output_tokens': 1078, 'thinking_tokens': 2303, 'total_tokens': 12428}
+  Latency: 28578 ms
+
+==============================================================================
+status=awaiting_human_review  applied=False
+No fix has been applied or verified. Human review is required — Phase 3.
+==============================================================================

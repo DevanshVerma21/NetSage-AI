@@ -1,0 +1,120 @@
+﻿
+==============================================================================
+NETSAGE AI — PHASE 2 AI DIAGNOSIS PIPELINE DEMONSTRATION
+AI proposes. Deterministic rules verify. Human approves.
+==============================================================================
+No API key and no network access are required for any scenario below.
+
+==============================================================================
+SCENARIO 1 — happy path: CASE-001 through the deterministic MOCK provider
+==============================================================================
+  case            : CASE-001
+  provider/model  : mock / deterministic-rules-v1
+  prompt          : diagnose_prompt v1.0.0 (3c34c86f4095…)
+  rule findings   : 5 (R004, R005, R006)
+  root cause      : SW1 has SVI Vlan30 for VLAN 30, but VLAN 30 was never created in the VLAN database. The SVI can never come up, so that subnet has no gateway. The deterministic checker reported 4 further findings that are consistent with this as the single underlying cause.
+  category / OSI  : VLAN / L2
+  model conf.     : HIGH (0.85)
+  effective conf. : HIGH (0.85)
+  evidence        : 3/3 verified -> integrity=passed
+  reconciliation  : agree
+  status          : awaiting_human_review  (applied=False)
+
+  AI evidence citations (3), all verifier-checked:
+    [1] source_command: show ip interface brief
+        excerpt        : Vlan30                 192.168.30.1    YES manual administratively down down
+        why it matters : The interface is shut down in configuration, so the subnet it terminates has no active gateway and produces no connected route.
+    [2] source_command: show ip route
+        excerpt        : Gateway of last resort is not set
+        why it matters : Supplied context for the reported symptom. It does not on its own isolate the cause, which is why further output is requested.
+    [3] source_command: ping 192.168.30.10
+        excerpt        : Request timed out.
+        why it matters : The destination does not answer, confirming the reported symptom is a real loss of reachability rather than an application-level problem.
+
+  Verification: 3/3 citation(s) verified against the supplied output.
+  All citations located in the output of the command they name.
+
+  Reconciliation: The AI's VLAN diagnosis is corroborated by R005. 2 further finding(s) (R004, R006) fall outside that category and are most likely consequences of the same underlying fault.
+
+  Recommended fix steps (3) — proposals only:
+    1. [SW1] risk=low
+         configure terminal
+         vlan 30
+         name VLAN30
+         end
+       rationale: Create VLAN 30 in the VLAN database so ports and any SVI referencing it can become active. Reversible with 'no vlan 30'.
+    2. [SW1] risk=low
+         configure terminal
+         interface Vlan30
+         no shutdown
+         end
+       rationale: Bring Vlan30 out of the shutdown state so its subnet has an active gateway and a connected route. Reversible with 'shutdown'.
+    3. [SW1] risk=medium
+         configure terminal
+         ip route 192.168.30.0 255.255.255.0 <next-hop-or-exit-interface>
+         end
+       rationale: Add a route to 192.168.30.0 255.255.255.0. The next hop must be confirmed by the reviewer against the topology before this is run.
+
+  Verification steps (3):
+    - show ip interface brief
+      expect: The condition detected by R004 (Interface down) should no longer be present.
+    - show vlan brief
+      expect: The condition detected by R005 (Missing VLAN) should no longer be present.
+    - show ip route
+      expect: The condition detected by R006 (Missing route) should no longer be present.
+
+==============================================================================
+SCENARIO 2 — evidence verification FAILURE (fabricated citations)
+==============================================================================
+  case            : CASE-001
+  provider/model  : fabricating-demo / adversarial-test-double
+  prompt          : diagnose_prompt v1.0.0 (3c34c86f4095…)
+  rule findings   : 5 (R004, R005, R006)
+  root cause      : VLAN 40 (DATABASE) is missing from the VLAN database on SW1, which is why the file server is unreachable.
+  category / OSI  : VLAN / L2
+  model conf.     : HIGH (0.94)
+  effective conf. : LOW (0.20)  [CAPPED]
+  evidence        : 0/2 verified -> integrity=failed
+  reconciliation  : agree
+  status          : awaiting_human_review  (applied=False)
+  warning         : EVIDENCE INTEGRITY FAILED — the AI cited evidence that does not appear in the supplied show-command output. Effective confidence has been capped at LOW. Treat this diagnosis with particular scepticism and verify every claim against the raw output before acting.
+  warning         : Evidence verification FAILED: none of the AI's citations could be located in the supplied show-command output, so nothing it claims is substantiated. Capped at LOW.
+
+  The provider claimed HIGH confidence. The verifier checked every citation
+  against the supplied output and rejected all of them:
+
+    FAILED [0]  reason=excerpt_not_found
+      source_command : show vlan brief
+      excerpt        : 40   DATABASE                         active    Gi0/9
+      why it failed  : The excerpt was not found in the output of 'show vlan brief'. It does not appear anywhere in the supplied output.
+    FAILED [1]  reason=excerpt_not_found
+      source_command : show ip interface brief
+      excerpt        : Vlan40                 192.168.40.1    YES manual up   up
+      why it failed  : The excerpt was not found in the output of 'show ip interface brief'. It does not appear anywhere in the supplied output.
+
+  The diagnosis is NOT discarded — the reviewer still sees it, alongside the
+  warning. What changes is how much the system is willing to stand behind it.
+
+==============================================================================
+SCENARIO 3 — confidence capping: model confidence vs effective confidence
+==============================================================================
+  model_confidence      : HIGH (0.94)   <- what the provider claimed
+  effective_confidence  : LOW (0.20)   <- what the system stands behind
+  was_capped            : True
+
+  Applied ceilings:
+    - condition : evidence verification failed
+      ceiling   : LOW
+      reason    : Evidence verification FAILED: none of the AI's citations could be located in the supplied show-command output, so nothing it claims is substantiated. Capped at LOW.
+
+  Confidence reduced from HIGH (0.94) to LOW (0.20) because: evidence verification failed.
+
+------------------------------------------------------------------------------
+  Both values are retained. The reviewer can always see the gap between the
+  model's self-assessment and the independently verified result.
+------------------------------------------------------------------------------
+
+==============================================================================
+Every diagnosis above ends at status=awaiting_human_review with applied=False.
+No fix has been applied, simulated or verified — that is Phase 3.
+==============================================================================
