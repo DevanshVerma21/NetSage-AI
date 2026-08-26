@@ -1,15 +1,16 @@
 """Dataset integrity tests.
 
-Phase 1 asserts the *shape* of the dataset and the invariants that must hold at every
-size. The full 40-case count and 9-category coverage assertions arrive in Phase 5; the
-placeholders below are written so they tighten automatically as cases are added.
+Phase 1 asserted the *shape* of the dataset and the invariants that must hold at every
+size. Phase 5 completes the dataset, so the 40-case count, the 9-category distribution
+and the remaining field-level validations are now asserted outright.
 """
 
 from __future__ import annotations
 
 import pytest
 
-from backend.app.models.enums import ConceptTag, SourceLabel
+from backend.app.models.enums import ConceptTag, OSILayer, Severity, SourceLabel
+from backend.app.rules.engine import registry
 from backend.app.services import case_repo
 
 # The reviewer-approved target distribution (amendment 2). Enforced in Phase 5.
@@ -124,22 +125,51 @@ def test_concept_tags_are_within_the_approved_taxonomy(cases):
 
 
 # ---------------------------------------------------------------------------------
-# Phase 5 gates — deliberately skipped until the dataset is expanded to 40 cases.
+# Phase 5 dataset gates — the dataset is now complete, so these assert outright.
 # ---------------------------------------------------------------------------------
 
 
 def test_dataset_reaches_forty_cases(cases):
-    if len(cases) < TARGET_TOTAL:
-        pytest.skip(
-            f"Phase 5 gate: {len(cases)}/{TARGET_TOTAL} cases authored so far "
-            "(Phase 1 builds the vertical slice on one case first)"
-        )
     assert len(cases) == TARGET_TOTAL
 
 
 def test_distribution_matches_the_approved_plan(cases):
-    if len(cases) < TARGET_TOTAL:
-        pytest.skip(f"Phase 5 gate: dataset is at {len(cases)}/{TARGET_TOTAL} cases")
     actual = case_repo.coverage_by_concept(use_cache=False)
     expected = {tag.value: count for tag, count in TARGET_DISTRIBUTION.items()}
     assert actual == expected
+
+
+def test_expected_rule_ids_exist_in_the_rule_registry(cases):
+    """A case may only expect rules the deterministic engine actually implements."""
+    known = set(registry())
+    for case in cases:
+        unknown = sorted(set(case.expected_rule_ids) - known)
+        assert not unknown, f"{case.case_id}: unknown rule ids {unknown}"
+        assert len(set(case.expected_rule_ids)) == len(case.expected_rule_ids), (
+            f"{case.case_id}: duplicate entries in expected_rule_ids"
+        )
+
+
+def test_osi_layer_and_severity_use_the_declared_enums(cases):
+    for case in cases:
+        assert isinstance(case.osi_layer, OSILayer), case.case_id
+        assert isinstance(case.severity, Severity), case.case_id
+        assert isinstance(case.concept_tag, ConceptTag), case.case_id
+
+
+def test_fix_steps_are_non_empty_strings(cases):
+    for case in cases:
+        for step in case.expected_fix_steps:
+            assert step.strip(), f"{case.case_id}: blank fix step"
+
+
+def test_lab_state_hosts_attach_to_declared_devices(cases):
+    """A host pinned to a device that does not exist would silently disable rules."""
+    for case in cases:
+        device_names = {d.name.lower() for d in case.lab_state.devices}
+        for host in case.lab_state.hosts:
+            if host.connected_device:
+                assert host.connected_device.lower() in device_names, (
+                    f"{case.case_id}: host {host.name} attaches to unknown device "
+                    f"{host.connected_device}"
+                )

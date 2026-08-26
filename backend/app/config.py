@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     # this is a one-line change in .env when 3.7 frees up.
     llm_model: str = "gemini-3.6-flash"
 
+    # The Anthropic model carries its own setting: ``llm_model`` names a Gemini model, and a
+    # provider must never inherit a model name belonging to another vendor. Override with
+    # ANTHROPIC_MODEL in .env.
+    anthropic_model: str = "claude-sonnet-5"
+
     gemini_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
 

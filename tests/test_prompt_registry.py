@@ -95,7 +95,7 @@ def test_load_prompt_returns_version_and_hash():
     prompt = load_prompt("diagnose_prompt")
 
     assert prompt.name == "diagnose_prompt"
-    assert prompt.version == "1.0.0"
+    assert prompt.version == "1.2.1"
     assert len(prompt.sha256) == 64
     assert prompt.text.strip()
 
@@ -197,15 +197,28 @@ def test_example_three_declines_to_guess():
 
 
 def test_prompt_enforces_every_required_constraint():
-    """The thirteen constraints the phase brief requires the prompt to state."""
-    text = load_prompt("diagnose_prompt").text.lower()
+    """The constraints the phase brief requires the prompt to state.
+
+    The prompt's own line wrapping and markdown emphasis are removed before matching, so a
+    reflowed paragraph reads as the clause it is rather than as a missing constraint.
+    """
+    import re
+
+    raw = load_prompt("diagnose_prompt").text.lower().replace("*", "")
+    text = re.sub(r"\s+", " ", raw)
 
     required_ideas = [
         "use only the supplied evidence",
         "never invent show-command output",
         "never invent topology information",
-        "must identify its source command",
-        "copied from the supplied show output",
+        "source_command must be copied exactly",
+        "identical to one of the supplied source command identifiers",
+        "prepend a device name",
+        "do not infer or reconstruct",
+        "copied character-for-character from the supplied show output",
+        "no paraphrasing",
+        "no stitching",
+        "contiguous substring",
         "insufficient",
         "next_command",
         "never claim a fix has been applied",

@@ -84,7 +84,7 @@ def test_no_provider_can_produce_an_applied_result(case):
 def test_result_records_the_prompt_identity(result):
     """A stored diagnosis must be traceable to the exact instruction text used."""
     assert result.prompt_name == "diagnose_prompt"
-    assert result.prompt_version == "1.0.0"
+    assert result.prompt_version == "1.2.1"
     assert len(result.prompt_sha256) == 64
 
 

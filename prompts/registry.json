@@ -5,13 +5,13 @@
   "prompts": {
     "diagnose_prompt": {
       "file": "diagnose_prompt.md",
-      "version": "1.0.0",
-      "sha256": "3c34c86f4095fbeb1c705a18e029d661d2f14b469f32eb060ebbabb99dd21d19"
+      "version": "1.2.1",
+      "sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c"
     },
     "system_guardrails": {
       "file": "system_guardrails.md",
-      "version": "1.0.0",
-      "sha256": "7fc107aa93da0dc0742a42a32d2ec0bcb08947f886d438720366b06a4dae01d0"
+      "version": "1.1.0",
+      "sha256": "af847548f6e77e72f98001c4dd0ba169ae10f93dfd360c7c76b08b1a5c8bfd1a"
     },
     "fix_plan_prompt": {
       "file": "fix_plan_prompt.md",

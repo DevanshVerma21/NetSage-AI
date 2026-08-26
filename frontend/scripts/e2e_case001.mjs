@@ -395,9 +395,11 @@ async function main() {
     check('the remaining findings are named', (partial.body?.remaining_rule_ids || []).length > 0)
 
     // --- 13. every declared route is served ----------------------------------------------
-    step('13. the four routes are served by the app')
+    step('13. the six routes are served by the app')
     for (const path of [
       '/',
+      '/responsible-ai',
+      '/cases',
       `/cases/CASE-001`,
       `/review/${diagnosis.diagnosis_id}`,
       `/fixes/${review.review_id}`,
@@ -410,6 +412,50 @@ async function main() {
         `status ${response.status}`,
       )
     }
+
+    // --- 14. the Phase 7 read-only aggregates --------------------------------------------
+    // The point of these checks is the separation and the honesty of the coverage figures,
+    // not their values: a temp DATA_DIR means the AI evaluation is genuinely empty here.
+    step('14. the dashboard and responsible-AI aggregates are calculated, not hard-coded')
+    const dash = await call('/dashboard')
+    check('GET /api/dashboard responds', dash.status === 200, `got ${dash.status}`)
+    check(
+      'the deterministic block counts the loaded cases and registered rules',
+      dash.body?.deterministic?.total_cases > 0 &&
+        dash.body.deterministic.total_rules ===
+          dash.body.deterministic.mandatory_rules + dash.body.deterministic.optional_rules,
+      JSON.stringify(dash.body?.deterministic?.total_rules),
+    )
+    check(
+      'deterministic and AI figures are separate blocks',
+      Boolean(dash.body?.deterministic) && Boolean(dash.body?.ai_evaluation),
+    )
+    check(
+      'AI accuracy is withheld while coverage is incomplete',
+      dash.body?.ai_evaluation?.coverage_complete === true ||
+        dash.body?.ai_evaluation?.accuracy === null,
+      JSON.stringify(dash.body?.ai_evaluation?.accuracy),
+    )
+    check(
+      'the AI evaluated count never exceeds the case total',
+      dash.body?.ai_evaluation?.evaluated <= dash.body?.ai_evaluation?.total,
+    )
+
+    const rai = await call('/responsible-ai')
+    check('GET /api/responsible-ai responds', rai.status === 200, `got ${rai.status}`)
+    check(
+      'the execution scope states what the system cannot do',
+      (rai.body?.execution_scope?.cannot || []).length > 0,
+    )
+    check('known limitations are disclosed', (rai.body?.limitations || []).length > 0)
+    check(
+      'the correction log shows an empty state rather than examples',
+      rai.body?.log?.available === true || (rai.body?.log?.corrections || []).length === 0,
+    )
+
+    const evals = await call('/evaluations?case_id=CASE-001')
+    check('GET /api/evaluations responds', evals.status === 200, `got ${evals.status}`)
+    check('an unevaluated case returns no records', Array.isArray(evals.body))
 
     console.log(`\n${'='.repeat(72)}`)
     console.log(`CASE-001 END-TO-END: ${failures.length === 0 ? 'PASS' : 'FAIL'}`)

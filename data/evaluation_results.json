@@ -1,0 +1,223 @@
+[
+  {
+    "case_id": "CASE-001",
+    "category": "VLAN",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R004",
+      "R005",
+      "R006"
+    ],
+    "expected_root_cause_keywords": [
+      "VLAN 30",
+      "vlan database",
+      "not created",
+      "SVI",
+      "shutdown",
+      "inter-VLAN"
+    ],
+    "expected_osi_layer": "L2",
+    "expected_category": "VLAN",
+    "expected_fault": "VLAN 30 was never created in the VLAN database on SW1. The Vlan30 SVI exists and holds 192.168.30.1/24 but is administratively shut down, so the SERVERS subnet has no active gateway, SW1 has no connected route to 192.168.30.0/24, and access port Gi0/2 shows Access Mode VLAN 30 as Inactive.",
+    "fired_rule_ids": [
+      "R004",
+      "R005",
+      "R006"
+    ],
+    "ai_root_cause": "VLAN 30 is missing from the Layer 2 VLAN database on SW1, causing access port Gi0/2 to remain inactive. In addition, SVI Vlan30 is administratively shut down. As a result, interface Vlan30 cannot come up, the directly connected route for 192.168.30.0/24 is not installed in the routing table, and hosts in VLAN 20 cannot reach SRV-FILES.",
+    "ai_osi_layer": "L2",
+    "ai_category": "VLAN",
+    "ai_evidence": [
+      {
+        "source_command": "SW1: show vlan brief",
+        "excerpt": "10   SALES                            active    Gi0/3",
+        "why_it_matters": "VLAN 30 is missing from the VLAN database, preventing access port Gi0/2 from becoming active and preventing SVI Vlan30 from operating.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW1: show vlan brief' is not among the supplied commands (ipconfig /all, ping 192.168.20.1, ping 192.168.30.10, show interfaces gi0/2 switchport, show ip arp, show ip interface brief, show ip route, show running-config interface vlan30, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "SW1: show interfaces Gi0/2 switchport",
+        "excerpt": "Access Mode VLAN: 30 (Inactive)",
+        "why_it_matters": "Confirms that port Gi0/2 is assigned to VLAN 30, but is inactive because VLAN 30 has not been created in the switch VLAN database.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW1: show interfaces Gi0/2 switchport' is not among the supplied commands (ipconfig /all, ping 192.168.20.1, ping 192.168.30.10, show interfaces gi0/2 switchport, show ip arp, show ip interface brief, show ip route, show running-config interface vlan30, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "SW1: show ip interface brief",
+        "excerpt": "Vlan30                 192.168.30.1    YES manual administratively down down",
+        "why_it_matters": "Shows interface Vlan30 is administratively shut down, so no Layer 3 routing or gateway service is available for subnet 192.168.30.0/24.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW1: show ip interface brief' is not among the supplied commands (ipconfig /all, ping 192.168.20.1, ping 192.168.30.10, show interfaces gi0/2 switchport, show ip arp, show ip interface brief, show ip route, show running-config interface vlan30, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "SW1: show running-config interface Vlan30",
+        "excerpt": " shutdown",
+        "why_it_matters": "The explicit shutdown command configured on SVI Vlan30 keeps the interface in administratively down state.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW1: show running-config interface Vlan30' is not among the supplied commands (ipconfig /all, ping 192.168.20.1, ping 192.168.30.10, show interfaces gi0/2 switchport, show ip arp, show ip interface brief, show ip route, show running-config interface vlan30, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "show vlan brief",
+    "fix_steps": [
+      "1. [SW1] configure terminal; vlan 30; name SERVERS; exit — Create VLAN 30 in the switch Layer 2 database so access port Gi0/2 becomes active and SVI Vlan30 can bind to a valid VLAN. (risk=low)",
+      "2. [SW1] configure terminal; interface Vlan30; no shutdown; end — Bring up SVI Vlan30 so it installs the directly connected route 192.168.30.0/24 into the routing table and routes inter-VLAN traffic to SRV-FILES. (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 4,
+    "verified_citations": 0,
+    "failed_citations": 4,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.0",
+    "prompt_sha256": "69a195782d8f803c4a86fee4060177f1d6eb1138f65f7b7964a1c1b1cd4d1e13",
+    "diagnosis_id": "DIAG-e2c633db451e",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R005"
+      ],
+      "missed_expected_rule_ids": [
+        "R004",
+        "R006"
+      ],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "VLAN 30",
+        "vlan database",
+        "SVI",
+        "shutdown",
+        "inter-VLAN"
+      ],
+      "missed_keywords": [
+        "not created"
+      ],
+      "keyword_hit_rate": 0.8333,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: secondary finding(s) R004, R006 not covered; evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 28748,
+    "timestamp": "2026-08-26T12:32:19+00:00",
+    "invalidated": true,
+    "invalidated_reason": "Produced under diagnose_prompt v1.2.0, before the v1.2.1 source_command contract fix. All four excerpts were verbatim but every citation failed as unknown_source_command because the model prefixed the device name ('SW1: show vlan brief'). Requires a live re-run under v1.2.1.",
+    "requires_rerun": true
+  },
+  {
+    "case_id": "CASE-002",
+    "category": "VLAN",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R003",
+      "R006",
+      "R015"
+    ],
+    "expected_root_cause_keywords": [
+      "missing svi",
+      "vlan 30",
+      "no gateway",
+      "inter-vlan routing",
+      "SW1"
+    ],
+    "expected_osi_layer": "L3",
+    "expected_category": "VLAN",
+    "expected_fault": "VLAN 30 exists and has a member, but no Vlan30 SVI was ever created on SW1, so 192.168.30.0/24 has no gateway and no connected route.",
+    "fired_rule_ids": [],
+    "ai_root_cause": null,
+    "ai_osi_layer": null,
+    "ai_category": null,
+    "ai_evidence": [],
+    "ai_insufficient_evidence": false,
+    "next_command": null,
+    "fix_steps": [],
+    "model_confidence": null,
+    "effective_confidence": null,
+    "confidence_was_capped": false,
+    "evidence_integrity": null,
+    "total_citations": 0,
+    "verified_citations": 0,
+    "failed_citations": 0,
+    "reconciliation": null,
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": null,
+    "prompt_sha256": null,
+    "diagnosis_id": null,
+    "evaluation_status": "failed",
+    "evaluation_result": "UNABLE_TO_EVALUATE",
+    "agreement": null,
+    "classification_reason": "The diagnosis could not be produced, so no comparison against the ground truth was possible.",
+    "error_type": "ProviderError",
+    "error_message": "Gemini request failed for model 'gemini-3.6-flash' after 4 attempt(s): ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 58.267932959s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '58s'}]}}",
+    "attempts": 1,
+    "latency_ms": 0,
+    "timestamp": "2026-08-26T12:37:02+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-003",
+    "category": "VLAN",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R007"
+    ],
+    "expected_root_cause_keywords": [
+      "wrong access vlan",
+      "gi0/2",
+      "vlan 10",
+      "vlan 20",
+      "access port"
+    ],
+    "expected_osi_layer": "L2",
+    "expected_category": "VLAN",
+    "expected_fault": "SW1 Gi0/2 is configured switchport access vlan 10, but the port serves the HR segment, so PC-HR's frames are switched into VLAN 10 instead of VLAN 20.",
+    "fired_rule_ids": [],
+    "ai_root_cause": null,
+    "ai_osi_layer": null,
+    "ai_category": null,
+    "ai_evidence": [],
+    "ai_insufficient_evidence": false,
+    "next_command": null,
+    "fix_steps": [],
+    "model_confidence": null,
+    "effective_confidence": null,
+    "confidence_was_capped": false,
+    "evidence_integrity": null,
+    "total_citations": 0,
+    "verified_citations": 0,
+    "failed_citations": 0,
+    "reconciliation": null,
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": null,
+    "prompt_sha256": null,
+    "diagnosis_id": null,
+    "evaluation_status": "failed",
+    "evaluation_result": "UNABLE_TO_EVALUATE",
+    "agreement": null,
+    "classification_reason": "The diagnosis could not be produced, so no comparison against the ground truth was possible.",
+    "error_type": "ProviderError",
+    "error_message": "Gemini request failed for model 'gemini-3.6-flash' after 4 attempt(s): ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 8.583020462s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '8s'}]}}",
+    "attempts": 1,
+    "latency_ms": 0,
+    "timestamp": "2026-08-26T12:32:52+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  }
+]

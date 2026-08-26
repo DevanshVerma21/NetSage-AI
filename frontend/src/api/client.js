@@ -87,6 +87,17 @@ function query(params) {
 
 export const getHealth = () => request('/health')
 
+/**
+ * Dashboard and Responsible-AI aggregates. Both are recalculated by the backend from stored
+ * data on every request — the frontend holds no metric of its own and computes no percentage
+ * the backend has not already derived from real records.
+ */
+export const getDashboard = () => request('/dashboard')
+export const getResponsibleAI = () => request('/responsible-ai')
+
+/** Stored AI evaluation records. An empty array means this case has not been evaluated. */
+export const getEvaluations = (filters) => request(`/evaluations${query(filters)}`)
+
 // --- case library -------------------------------------------------------------------------
 
 export const getCases = (filters) => request(`/cases${query(filters)}`)

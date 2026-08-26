@@ -241,13 +241,56 @@ def test_unconfigured_gemini_provider_reports_unavailable():
     assert provider.is_available() is False
 
 
-def test_anthropic_provider_reports_unavailable_even_with_a_key():
-    """It is a declared stub; reporting availability would let the factory route real
-    traffic into an unimplemented path."""
-    settings = Settings(llm_provider="anthropic", anthropic_api_key="some-key")
+def test_anthropic_provider_is_available_only_with_a_key():
+    """Implemented in Phase 6 when the Gemini daily quota ran out. Availability tracks the
+    credential and makes no network call, exactly as the Gemini provider does."""
+    with_key = build_provider(
+        "anthropic", settings=Settings(llm_provider="anthropic", anthropic_api_key="some-key")
+    )
+    assert with_key.is_available() is True
+
+    without_key = build_provider(
+        "anthropic", settings=Settings(llm_provider="anthropic", anthropic_api_key=None)
+    )
+    assert without_key.is_available() is False
+
+
+def test_anthropic_provider_carries_its_own_model_setting():
+    """``llm_model`` names a Gemini model; inheriting it here would report a Gemini model
+    name on an Anthropic result and corrupt the evaluation record."""
+    settings = Settings(
+        llm_provider="anthropic",
+        llm_model="gemini-3.6-flash",
+        anthropic_model="claude-sonnet-5",
+        anthropic_api_key="some-key",
+    )
     provider = build_provider("anthropic", settings=settings)
 
-    assert provider.is_available() is False
+    assert provider.model == "claude-sonnet-5"
+    assert provider.name == "anthropic"
+
+
+def test_anthropic_provider_errors_never_carry_the_credential():
+    """The failure path reports the exception type and message only."""
+    from backend.app.ai.anthropic_provider import AnthropicProvider
+    from backend.app.ai.base import ProviderError
+
+    secret = "sk-ant-do-not-leak-this"
+    provider = AnthropicProvider(
+        settings=Settings(llm_provider="anthropic", anthropic_api_key=secret)
+    )
+
+    class Boom:
+        class messages:
+            @staticmethod
+            def create(**_kwargs):
+                raise RuntimeError("403 forbidden")
+
+    with pytest.raises(ProviderError) as excinfo:
+        provider._generate(Boom, "contents", "system")
+
+    assert secret not in str(excinfo.value)
+    assert "1 attempt(s)" in str(excinfo.value), "a 403 is not retried four times"
 
 
 def test_no_module_outside_the_ai_layer_imports_the_gemini_sdk():
@@ -280,4 +323,4 @@ def test_gemini_sdk_can_convert_the_diagnosis_schema():
 
     ok, detail = schema_converts_cleanly()
     assert ok, f"AIDiagnosis no longer converts for Gemini: {detail}"
-
+

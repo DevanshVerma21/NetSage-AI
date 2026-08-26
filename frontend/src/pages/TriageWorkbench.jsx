@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { checkRules, diagnose, getCase, getDiagnoses, getHealth } from '../api/client.js'
+import {
+  checkRules,
+  diagnose,
+  getCase,
+  getDiagnoses,
+  getEvaluations,
+  getHealth,
+} from '../api/client.js'
 import { AIDiagnosisCard } from '../components/AIDiagnosisCard.jsx'
+import { GroundTruthPanel, StoredEvaluationPanel } from '../components/CaseEvaluation.jsx'
 import { RuleFindingCard, RulePassRow } from '../components/RuleFindingCard.jsx'
 import { ShowOutputViewer } from '../components/ShowOutputViewer.jsx'
 import { Badge, SeverityBadge, StatusBadge } from '../components/StatusBadge.jsx'
@@ -37,6 +45,11 @@ export function TriageWorkbench() {
   const [mandatoryRules, setMandatoryRules] = useState([])
   const [provider, setProvider] = useState('mock')
   const [health, setHealth] = useState(null)
+
+  // Stored Phase 6 evaluation records for this case. An empty array is a real answer — the
+  // page says "AI evaluation not available for this case" rather than showing a placeholder.
+  const [evaluations, setEvaluations] = useState(null)
+  const [loadingEvaluations, setLoadingEvaluations] = useState(true)
 
   const runRules = useCallback(async () => {
     setRunningRules(true)
@@ -91,6 +104,20 @@ export function TriageWorkbench() {
     }
   }, [caseId])
 
+  useEffect(() => {
+    let active = true
+    setLoadingEvaluations(true)
+    getEvaluations({ case_id: caseId })
+      .then((records) => active && setEvaluations(records))
+      // A failure here must not be mistaken for "no evaluation exists", so it also lands as
+      // an empty list only after the request genuinely returned one.
+      .catch(() => active && setEvaluations([]))
+      .finally(() => active && setLoadingEvaluations(false))
+    return () => {
+      active = false
+    }
+  }, [caseId])
+
   async function runDiagnosis() {
     setRunningAI(true)
     setDiagnosisError(null)
@@ -108,7 +135,7 @@ export function TriageWorkbench() {
     return (
       <div className="space-y-4">
         <ErrorNotice error={caseError} />
-        <Link to="/" className="text-sm text-sky-400 hover:underline">
+        <Link to="/cases" className="text-sm text-sky-400 hover:underline">
           ← Back to the case library
         </Link>
       </div>
@@ -125,7 +152,7 @@ export function TriageWorkbench() {
       {/* --- header ------------------------------------------------------------------- */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link to="/" className="text-xs text-sky-400 hover:underline">
+          <Link to="/cases" className="text-xs text-sky-400 hover:underline">
             ← Case Library
           </Link>
           <h2 className="mt-1 text-xl font-semibold text-slate-50">
@@ -184,6 +211,8 @@ export function TriageWorkbench() {
           >
             <ShowOutputViewer outputs={caseData.show_outputs} />
           </Panel>
+
+          <GroundTruthPanel caseData={caseData} />
         </div>
 
         {/* --- RIGHT: rules, then AI, then the gate ----------------------------------- */}
@@ -292,6 +321,8 @@ export function TriageWorkbench() {
               </div>
             )}
           </Panel>
+
+          <StoredEvaluationPanel records={evaluations} loading={loadingEvaluations} />
 
           {/* --- Step 4: the human gate --------------------------------------------- */}
           {diagnosis && (

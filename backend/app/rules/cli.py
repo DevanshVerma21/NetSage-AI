@@ -5,6 +5,7 @@ with no AI involvement and no network access whatsoever.
 
     python -m backend.app.rules.cli --case CASE-001
     python -m backend.app.rules.cli --all
+    python -m backend.app.rules.cli --all --format table
     python -m backend.app.rules.cli --list-rules
     python -m backend.app.rules.cli --all --check-expected
 """
@@ -103,6 +104,59 @@ def list_rules() -> str:
     return "\n".join(lines)
 
 
+def format_table(cases: list[Case], results: list[list[Finding]]) -> str:
+    """A one-row-per-case summary: what was expected, what fired, and whether they agree.
+
+    Used for the whole-dataset run, where 40 detailed reports are too long to read at once
+    but the expected-versus-fired verdict for each case still has to be visible.
+    """
+    header = (
+        f"{'CASE':<9} {'CATEGORY':<17} {'SEV':<9} {'OSI':<4} "
+        f"{'EXPECTED':<22} {'FIRED':<22} RESULT"
+    )
+    lines = [
+        SEP,
+        "NETSAGE AI — DETERMINISTIC RULE CHECK, ALL CASES",
+        SEP,
+        f"cases: {len(cases)}   rules registered: {len(registry())}   "
+        f"mandatory: {len(mandatory_rule_ids())}",
+        "",
+        header,
+        SUB,
+    ]
+
+    failures: list[str] = []
+    for case, findings in zip(cases, results):
+        fired = sorted({f.rule_id for f in findings})
+        expected = sorted(set(case.expected_rule_ids))
+        ok = fired == expected
+        if not ok:
+            missing = ", ".join(r for r in expected if r not in fired) or "-"
+            extra = ", ".join(r for r in fired if r not in expected) or "-"
+            failures.append(f"{case.case_id}: MISSING {missing} / EXTRA {extra}")
+        lines.append(
+            f"{case.case_id:<9} {case.concept_tag.value:<17} {case.severity.value:<9} "
+            f"{case.osi_layer.value:<4} {','.join(expected):<22} {','.join(fired):<22} "
+            f"{'PASS' if ok else 'FAIL'}"
+        )
+
+    lines.extend(
+        [
+            SUB,
+            f"total cases:      {len(cases)}",
+            f"total rules:      {len(registry())} "
+            f"({len(mandatory_rule_ids())} mandatory, "
+            f"{len(registry()) - len(mandatory_rule_ids())} optional)",
+            f"expected == fired: {len(cases) - len(failures)}/{len(cases)} cases",
+            f"failures:         {len(failures)}",
+        ]
+    )
+    for failure in failures:
+        lines.append(f"  - {failure}")
+    lines.append(SEP)
+    return "\n".join(lines)
+
+
 def run(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="netsage-rules",
@@ -116,6 +170,12 @@ def run(argv: Optional[list[str]] = None) -> int:
         "--check-expected",
         action="store_true",
         help="Also compare fired rules against each case's expected_rule_ids",
+    )
+    parser.add_argument(
+        "--format",
+        choices=("detail", "table"),
+        default="detail",
+        help="detail = full findings per case (default); table = one summary row per case",
     )
     args = parser.parse_args(argv)
 
@@ -135,9 +195,18 @@ def run(argv: Optional[list[str]] = None) -> int:
             print("error: no cases found in the dataset", file=sys.stderr)
             return 2
 
+    results = [run_rules(case.lab_state, case.intended_flows) for case in cases]
+
+    # The table always states the expected-versus-fired verdict; that is the point of it.
+    if args.format == "table":
+        print(format_table(cases, results))
+        return 1 if any(
+            sorted({f.rule_id for f in findings}) != sorted(set(case.expected_rule_ids))
+            for case, findings in zip(cases, results)
+        ) else 0
+
     failures = 0
-    for case in cases:
-        findings = run_rules(case.lab_state, case.intended_flows)
+    for case, findings in zip(cases, results):
         print(format_findings(case, findings))
         if args.check_expected:
             comparison = format_expected_comparison(case, findings)

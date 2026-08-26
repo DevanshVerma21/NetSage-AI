@@ -12,6 +12,13 @@ import { Badge } from './StatusBadge.jsx'
  * `execution_scope` — it is not a decorative label, and if the backend ever reported a
  * different scope this header would say so.
  */
+// `end` on the Dashboard only, so `/cases/CASE-001` highlights "Cases" rather than both.
+const NAV = [
+  { to: '/', label: 'Dashboard', end: true },
+  { to: '/cases', label: 'Cases' },
+  { to: '/responsible-ai', label: 'Responsible AI' },
+]
+
 export function AppShell({ children }) {
   const [health, setHealth] = useState(null)
   const [offline, setOffline] = useState(false)
@@ -38,18 +45,22 @@ export function AppShell({ children }) {
           </Link>
 
           <nav className="flex items-center gap-1">
-            <NavLink
-              to="/"
-              className={({ isActive }) =>
-                `rounded-md px-3 py-1.5 text-sm font-medium ${
-                  isActive
-                    ? 'bg-slate-800 text-slate-100'
-                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-                }`
-              }
-            >
-              Cases
-            </NavLink>
+            {NAV.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  `rounded-md px-3 py-1.5 text-sm font-medium ${
+                    isActive
+                      ? 'bg-slate-800 text-slate-100'
+                      : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
 
           <div className="ml-auto flex flex-wrap items-center gap-2">

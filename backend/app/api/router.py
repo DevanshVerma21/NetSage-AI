@@ -30,6 +30,7 @@ from backend.app.models.records import EXECUTION_SCOPE, DiagnosisRecord, FixRunR
 from backend.app.rules.engine import mandatory_rule_ids, registry, run_rules
 from backend.app.services import (
     case_repo,
+    dashboard as dashboard_service,
     diagnose,
     diagnosis_repo,
     fix_service,
@@ -63,8 +64,43 @@ def health() -> HealthResponse:
     )
 
 
-# --- case library -------------------------------------------------------------------------
+# --- the dashboard and the responsible-AI disclosures -------------------------------------
+#
+# Read-only aggregates, recalculated from stored data on every request. No figure here is a
+# constant: with an empty data directory every count is zero and the AI status reports
+# NOT_STARTED. `response_model` is deliberately omitted — these payloads are nested metric
+# dictionaries whose shape is asserted by the tests, and pinning them to a schema class would
+# duplicate `services/dashboard.py` without adding a guarantee.
 
+
+@api_router.get("/dashboard", tags=["meta"])
+def get_dashboard() -> dict:
+    """Deterministic and AI figures, kept in separate blocks with separate denominators."""
+    return dashboard_service.dashboard()
+
+
+@api_router.get("/responsible-ai", tags=["meta"])
+def get_responsible_ai() -> dict:
+    """Methodology, execution scope, known limitations, and the genuine human-correction log."""
+    return dashboard_service.responsible_ai()
+
+
+@api_router.get("/evaluations", tags=["meta"])
+def list_evaluations(case_id: Optional[str] = Query(default=None)) -> list[dict]:
+    """Stored AI evaluation records.
+
+    Returned as-is so a case page can say "not available" for a case that has none, rather
+    than being handed a placeholder. Invalidated records are included and carry their
+    ``invalidated`` / ``requires_rerun`` flags, so a caller can see why a row is not official.
+    """
+    records = dashboard_service.load_evaluation_records()
+    if case_id:
+        wanted = case_id.strip().upper()
+        records = [r for r in records if r.case_id.upper() == wanted]
+    return [r.model_dump(mode="json") for r in records]
+
+
+# --- case library -------------------------------------------------------------------------
 
 @api_router.get("/cases", response_model=list[CaseSummary], tags=["cases"])
 def list_cases(

@@ -107,3 +107,2733 @@ Voice VLAN: none","VLAN 30 was never created in the VLAN database on SW1. The Vl
 4. Verify the SVI: show ip interface brief (Vlan30 must be up/up)
 5. Verify routing: show ip route (192.168.30.0/24 must appear as directly connected)
 6. Confirm the fix from the client: ping 192.168.30.10 from PC-HR",simulated-lab
+CASE-002,New SERVERS VLAN was created but nobody can reach the ERP server,"VLAN 30 was created on SW1 last night and SRV-ERP was moved into it. The server answers on the local segment but no staff PC can reach 192.168.30.10, and the server itself cannot reach anything outside its own VLAN.","Single multilayer switch lab (simulated). SW1 does inter-VLAN routing with ip routing enabled. VLAN 10 STAFF = 192.168.10.0/24, VLAN 20 VOICE = 192.168.20.0/24, VLAN 30 SERVERS = 192.168.30.0/24. Every VLAN is supposed to have an SVI on SW1 as its gateway; 192.168.30.1 is the documented gateway for the SERVERS VLAN. PC-STAFF is on Gi0/1, SRV-ERP on Gi0/3.","### PC-STAFF :: ping 192.168.10.1
+PC-STAFF> ping 192.168.10.1
+
+Pinging 192.168.10.1 with 32 bytes of data:
+
+Reply from 192.168.10.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.10.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.10.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.10.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.10.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### PC-STAFF :: ping 192.168.30.10
+PC-STAFF> ping 192.168.30.10
+
+Pinging 192.168.30.10 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.30.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### SRV-ERP :: ping 192.168.30.1
+SRV-ERP> ping 192.168.30.1
+
+Pinging 192.168.30.1 with 32 bytes of data:
+
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+
+Ping statistics for 192.168.30.1:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### SW1 :: show running-config | include interface Vlan
+interface Vlan10
+interface Vlan20
+
+### SW1 :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+10   STAFF                            active    Gi0/1
+20   VOICE                            active    Gi0/2
+30   SERVERS                          active    Gi0/3
+
+### SW1 :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  up                    up
+GigabitEthernet0/3         unassigned      YES unset  up                    up
+Vlan10                     192.168.10.1    YES manual up                    up
+Vlan20                     192.168.20.1    YES manual up                    up
+
+### SW1 :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.10.0/24 is directly connected, Vlan10
+C       192.168.20.0/24 is directly connected, Vlan20
+
+### PC-STAFF :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.10.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.10.1
+   DNS Servers.....................: (none configured)
+
+### SRV-ERP :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.30.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.30.1
+   DNS Servers.....................: (none configured)","VLAN 30 exists and has a member, but no Vlan30 SVI was ever created on SW1, so 192.168.30.0/24 has no gateway and no connected route.",L3,VLAN,High,no,R003; R006; R015,"1. On SW1, create the missing SVI: interface Vlan30
+2. Assign the documented gateway address: ip address 192.168.30.1 255.255.255.0
+3. Bring it up: no shutdown
+4. Confirm Vlan30 is up/up in show ip interface brief
+5. Confirm 192.168.30.0/24 now appears as a connected route in show ip route
+6. Re-test: PC-STAFF ping 192.168.30.10",simulated-lab
+CASE-003,Re-patched HR PC lands in the SALES VLAN and never reaches its gateway,"PC-HR was moved to a new port after a desk move. It has its documented HR address 192.168.20.30 but cannot ping its gateway 192.168.20.1, and a packet capture shows its ARP requests arriving in the SALES broadcast domain.","Single multilayer switch lab (simulated). VLAN 10 SALES = 192.168.10.0/24 on Gi0/1, VLAN 20 HR = 192.168.20.0/24. The cabling record says Gi0/2 is an HR access port, so PC-HR on Gi0/2 must be in VLAN 20. Both SVIs exist and are up.","### PC-HR :: ping 192.168.20.1
+PC-HR> ping 192.168.20.1
+
+Pinging 192.168.20.1 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.20.1:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### SW1 :: show running-config interface GigabitEthernet0/2
+interface GigabitEthernet0/2
+ switchport mode access
+ switchport access vlan 10
+
+### SW1 :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+10   SALES                            active    Gi0/1, Gi0/2
+20   HR                               active    
+
+### SW1 :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  up                    up
+Vlan10                     192.168.10.1    YES manual up                    up
+Vlan20                     192.168.20.1    YES manual up                    up
+
+### SW1 :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.10.0/24 is directly connected, Vlan10
+C       192.168.20.0/24 is directly connected, Vlan20
+
+### PC-SALES :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.10.30
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.10.1
+   DNS Servers.....................: (none configured)
+
+### PC-HR :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.20.30
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.20.1
+   DNS Servers.....................: (none configured)","SW1 Gi0/2 is configured switchport access vlan 10, but the port serves the HR segment, so PC-HR's frames are switched into VLAN 10 instead of VLAN 20.",L2,VLAN,High,no,R007,"1. On SW1: interface GigabitEthernet0/2
+2. Correct the access VLAN: switchport access vlan 20
+3. Confirm Gi0/2 is listed under VLAN 20 in show vlan brief
+4. Re-test: PC-HR ping 192.168.20.1",simulated-lab
+CASE-004,Finance PCs on the access switch lost their gateway after a trunk change,"After maintenance on the SW1-SW2 uplink, every PC in VLAN 20 behind SW2 stopped reaching its gateway 192.168.20.1. VLAN 10 users on the same uplink are fine, and PC-FIN can still see other VLAN 20 hosts on SW2 itself.",Two-switch lab (simulated). SW1 is the multilayer switch and holds the SVIs for VLAN 10 ENG = 192.168.10.0/24 and VLAN 20 FIN = 192.168.20.0/24. SW2 is a Layer 2 access switch. The documented uplink Gi0/24 <-> Gi0/24 is an 802.1Q trunk that must carry VLANs 10 and 20 with native VLAN 1.,"### PC-FIN :: ping 192.168.20.1
+PC-FIN> ping 192.168.20.1
+
+Pinging 192.168.20.1 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.20.1:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### PC-ENG :: ping 192.168.10.1
+PC-ENG> ping 192.168.10.1
+
+Pinging 192.168.10.1 with 32 bytes of data:
+
+Reply from 192.168.10.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.10.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.10.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.10.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.10.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### SW1 :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+10   ENG                              active    Gi0/1
+20   FIN                              active    
+
+### SW1 :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/24        unassigned      YES unset  up                    up
+Vlan10                     192.168.10.1    YES manual up                    up
+Vlan20                     192.168.20.1    YES manual up                    up
+
+### SW1 :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.10.0/24 is directly connected, Vlan10
+C       192.168.20.0/24 is directly connected, Vlan20
+
+### SW1 :: show interfaces trunk
+Port        Mode         Encapsulation  Status        Native vlan
+Gi0/24      on           802.1q         trunking      1
+
+Port        Vlans allowed on trunk
+Gi0/24      10,20
+
+### SW2 :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+10   ENG                              active    
+20   FIN                              active    Gi0/1
+
+### SW2 :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/24        unassigned      YES unset  up                    up
+
+### SW2 :: show interfaces trunk
+Port        Mode         Encapsulation  Status        Native vlan
+Gi0/24      on           802.1q         trunking      1
+
+Port        Vlans allowed on trunk
+Gi0/24      10
+
+### PC-ENG :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.10.40
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.10.1
+   DNS Servers.....................: (none configured)
+
+### PC-FIN :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.20.40
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.20.1
+   DNS Servers.....................: (none configured)","SW2's trunk Gi0/24 permits only VLAN 10 (switchport trunk allowed vlan 10), so VLAN 20 frames are pruned on the uplink and never reach the Vlan20 SVI on SW1.",L2,VLAN,High,no,R008,"1. On SW2: interface GigabitEthernet0/24
+2. Restore the documented VLAN list: switchport trunk allowed vlan 10,20
+3. Verify both VLANs are listed in show interfaces trunk on SW1 and SW2
+4. Re-test: PC-FIN ping 192.168.20.1",simulated-lab
+CASE-005,Untagged management traffic crosses into the wrong VLAN on the SW1-SW2 trunk,"The switches log a native VLAN mismatch on the uplink every few minutes. Untagged frames sent by SW2 land in VLAN 1 on SW1, management reachability to SW2 is intermittent, and the CDP neighbour entry keeps flapping.",Two-switch lab (simulated). The documented uplink Gi0/24 <-> Gi0/24 is an 802.1Q trunk carrying VLANs 10 and 20 with native VLAN 1 on both ends. SW1 holds the SVIs; SW2 is a Layer 2 access switch that still has a legacy VLAN 99 MGMT-OLD in its database from a previous management design.,"### SW1 :: show logging | include CDP-4-NATIVE_VLAN_MISMATCH
+%CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/24 (1), with SW2 GigabitEthernet0/24 (99).
+
+### SW1 :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+10   ENG                              active    Gi0/1
+20   FIN                              active    
+
+### SW1 :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/24        unassigned      YES unset  up                    up
+Vlan10                     192.168.10.1    YES manual up                    up
+Vlan20                     192.168.20.1    YES manual up                    up
+
+### SW1 :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.10.0/24 is directly connected, Vlan10
+C       192.168.20.0/24 is directly connected, Vlan20
+
+### SW1 :: show interfaces trunk
+Port        Mode         Encapsulation  Status        Native vlan
+Gi0/24      on           802.1q         trunking      1
+
+Port        Vlans allowed on trunk
+Gi0/24      10,20
+
+### SW2 :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+10   ENG                              active    
+20   FIN                              active    Gi0/1
+99   MGMT-OLD                         active    
+
+### SW2 :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/24        unassigned      YES unset  up                    up
+
+### SW2 :: show interfaces trunk
+Port        Mode         Encapsulation  Status        Native vlan
+Gi0/24      on           802.1q         trunking      99
+
+Port        Vlans allowed on trunk
+Gi0/24      10,20
+
+### PC-ENG :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.10.40
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.10.1
+   DNS Servers.....................: (none configured)
+
+### PC-FIN :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.20.40
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.20.1
+   DNS Servers.....................: (none configured)","SW2's trunk uses switchport trunk native vlan 99 while SW1 and the documented design use native VLAN 1, so untagged traffic is placed in a different VLAN at each end of the same trunk.",L2,VLAN,Medium,no,R008,"1. On SW2: interface GigabitEthernet0/24
+2. Match the documented native VLAN: switchport trunk native vlan 1
+3. Confirm both ends report native VLAN 1 in show interfaces trunk
+4. Confirm the native VLAN mismatch log messages stop",simulated-lab
+CASE-006,Accounting PC reaches its own subnet but nothing beyond it,PC-ACC can ping other hosts in 192.168.50.0/24 but every ping to the server LAN fails immediately with 'Destination host unreachable'. Its ARP table has no entry for a router.,Single router lab (simulated). R1 Gi0/0 = 192.168.50.1/24 serves the accounting LAN and Gi0/1 = 192.168.60.1/24 serves the server LAN. The documented default gateway for the accounting LAN is 192.168.50.1. Both router interfaces are up.,"### PC-ACC :: ping 192.168.50.254
+PC-ACC> ping 192.168.50.254
+
+Pinging 192.168.50.254 with 32 bytes of data:
+
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+
+Ping statistics for 192.168.50.254:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### PC-ACC :: ping 192.168.60.10
+PC-ACC> ping 192.168.60.10
+
+Pinging 192.168.60.10 with 32 bytes of data:
+
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+
+Ping statistics for 192.168.60.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### SRV-FILE :: ping 192.168.60.1
+SRV-FILE> ping 192.168.60.1
+
+Pinging 192.168.60.1 with 32 bytes of data:
+
+Reply from 192.168.60.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.60.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.60.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.60.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.60.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### R1 :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.50.1    YES manual up                    up
+GigabitEthernet0/1         192.168.60.1    YES manual up                    up
+
+### R1 :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.50.0/24 is directly connected, GigabitEthernet0/0
+C       192.168.60.0/24 is directly connected, GigabitEthernet0/1
+
+### PC-ACC :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.50.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.50.254
+   DNS Servers.....................: (none configured)
+
+### SRV-FILE :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.60.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.60.1
+   DNS Servers.....................: (none configured)","PC-ACC's default gateway is 192.168.50.254, an address inside its own subnet that no device in the topology owns, so it has no working first hop.",L3,GATEWAY,High,no,R003,"1. On PC-ACC, set the default gateway to the documented router address 192.168.50.1
+2. Confirm ipconfig /all shows Default Gateway 192.168.50.1
+3. Re-test: PC-ACC ping 192.168.50.1, then ping 192.168.60.10",simulated-lab
+CASE-007,Branch PC has a gateway address that is not on its own network,PC-BRANCH cannot leave the branch LAN. PC-DESK on the same switchport range works normally. PC-BRANCH's ping to its configured gateway fails without ever leaving the host.,Branch router lab (simulated). R2 Gi0/0 = 192.168.70.1/24 is the branch LAN gateway and Gi0/1 = 10.20.0.1/30 is the link toward the data centre. Both PCs sit in 192.168.70.0/24 and must use 192.168.70.1 as their default gateway.,"### PC-BRANCH :: ping 192.168.7.1
+PC-BRANCH> ping 192.168.7.1
+
+Pinging 192.168.7.1 with 32 bytes of data:
+
+Destination host unreachable (no route on the local host).
+Destination host unreachable (no route on the local host).
+Destination host unreachable (no route on the local host).
+Destination host unreachable (no route on the local host).
+
+Ping statistics for 192.168.7.1:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### PC-DESK :: ping 192.168.70.1
+PC-DESK> ping 192.168.70.1
+
+Pinging 192.168.70.1 with 32 bytes of data:
+
+Reply from 192.168.70.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.70.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.70.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.70.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.70.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### R2 :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.70.1    YES manual up                    up
+GigabitEthernet0/1         10.20.0.1       YES manual up                    up
+
+### R2 :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.70.0/24 is directly connected, GigabitEthernet0/0
+C       10.20.0.0/30 is directly connected, GigabitEthernet0/1
+
+### PC-BRANCH :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.70.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.7.1
+   DNS Servers.....................: (none configured)
+
+### PC-DESK :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.70.30
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.70.1
+   DNS Servers.....................: (none configured)","PC-BRANCH's default gateway 192.168.7.1 is outside its own 192.168.70.0/24 network (a mistyped octet), so the host cannot ARP for it at all.",L3,GATEWAY,High,no,R003,"1. On PC-BRANCH, correct the default gateway to 192.168.70.1
+2. Confirm the gateway is inside 192.168.70.0/24 in ipconfig /all
+3. Re-test: PC-BRANCH ping 192.168.70.1, then ping 10.20.0.1",simulated-lab
+CASE-008,Freshly imaged lab PC has an address and mask but no default gateway,"PC-LAB was given a static address during imaging. It reaches other hosts in the lab VLAN, but every attempt to reach the HR server 192.168.40.10 fails at once. ipconfig shows an empty Default Gateway line.",Campus core lab (simulated). SW-CORE is a multilayer switch with ip routing enabled. VLAN 40 HR = 192.168.40.0/24 and VLAN 41 LAB = 192.168.41.0/24 each have an up SVI; 192.168.41.1 is the documented gateway for the lab VLAN.,"### PC-LAB :: ping 192.168.40.10
+PC-LAB> ping 192.168.40.10
+
+Pinging 192.168.40.10 with 32 bytes of data:
+
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+
+Ping statistics for 192.168.40.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### PC-LAB :: route print | include 0.0.0.0
+! no default route is present in the host routing table
+
+### SW-CORE :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+40   HR                               active    Gi1/0/1
+41   LAB                              active    Gi1/0/2
+
+### SW-CORE :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet1/0/1       unassigned      YES unset  up                    up
+GigabitEthernet1/0/2       unassigned      YES unset  up                    up
+Vlan40                     192.168.40.1    YES manual up                    up
+Vlan41                     192.168.41.1    YES manual up                    up
+
+### SW-CORE :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.40.0/24 is directly connected, Vlan40
+C       192.168.41.0/24 is directly connected, Vlan41
+
+### PC-LAB :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.41.25
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 0.0.0.0
+   DNS Servers.....................: (none configured)
+
+### SRV-HR :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.40.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.40.1
+   DNS Servers.....................: (none configured)","PC-LAB has no default gateway configured at all, so it can only reach its own subnet even though the Vlan41 SVI is up and routing works.",L3,GATEWAY,High,no,R003,"1. On PC-LAB, set the default gateway to 192.168.41.1
+2. Confirm ipconfig /all now lists a default gateway
+3. Re-test: PC-LAB ping 192.168.41.1, then ping 192.168.40.10",simulated-lab
+CASE-009,Finance PC uses the print server as its default gateway,"PC-FIN can print and can reach every host on the finance LAN, but the payroll server on 192.168.81.0/24 is unreachable. Its gateway pings successfully, which makes the fault look like a routing problem at first.","Single router lab (simulated). R3 Gi0/0 = 192.168.80.1/24 is the finance LAN gateway; Gi0/1 = 192.168.81.1/24 serves the data centre LAN. 192.168.80.50 is SRV-PRINT, an end host that does not route. The documented finance gateway is 192.168.80.1.","### PC-FIN :: ping 192.168.80.50
+PC-FIN> ping 192.168.80.50
+
+Pinging 192.168.80.50 with 32 bytes of data:
+
+Reply from 192.168.80.50: bytes=32 time<1ms TTL=128
+Reply from 192.168.80.50: bytes=32 time<1ms TTL=128
+Reply from 192.168.80.50: bytes=32 time<1ms TTL=128
+Reply from 192.168.80.50: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.80.50:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### PC-FIN :: ping 192.168.81.10
+PC-FIN> ping 192.168.81.10
+
+Pinging 192.168.81.10 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.81.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### R3 :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.80.1    YES manual up                    up
+GigabitEthernet0/1         192.168.81.1    YES manual up                    up
+
+### R3 :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.80.0/24 is directly connected, GigabitEthernet0/0
+C       192.168.81.0/24 is directly connected, GigabitEthernet0/1
+
+### PC-FIN :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.80.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.80.50
+   DNS Servers.....................: (none configured)
+
+### SRV-PRINT :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.80.50
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.80.1
+   DNS Servers.....................: (none configured)
+
+### SRV-PAY :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.81.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.81.1
+   DNS Servers.....................: (none configured)","PC-FIN's default gateway 192.168.80.50 is the print server, not a routed interface, so the gateway answers ICMP but forwards nothing off-subnet.",L3,GATEWAY,High,no,R003,"1. On PC-FIN, set the default gateway to the router address 192.168.80.1
+2. Confirm 192.168.80.1 is owned by R3 Gi0/0 in show ip interface brief
+3. Re-test: PC-FIN ping 192.168.81.10",simulated-lab
+CASE-010,Support PC reaches its gateway but only half of its own VLAN,"PC-SUP pings its gateway and the apps server, but cannot reach support hosts numbered above 192.168.90.127 — those it tries to send via the router instead of directly, and the returning traffic is dropped.",Edge switch lab (simulated). SW-EDGE is a multilayer switch. VLAN 90 SUPPORT = 192.168.90.0/24 with gateway 192.168.90.1 and VLAN 91 APPS = 192.168.91.0/24 with gateway 192.168.91.1. Every host in VLAN 90 is documented as /24.,"### PC-SUP :: ping 192.168.90.1
+PC-SUP> ping 192.168.90.1
+
+Pinging 192.168.90.1 with 32 bytes of data:
+
+Reply from 192.168.90.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.90.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.90.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.90.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.90.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### PC-SUP :: ping 192.168.90.200
+PC-SUP> ping 192.168.90.200
+
+Pinging 192.168.90.200 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.90.200:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### SW-EDGE :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+90   SUPPORT                          active    Gi0/1
+91   APPS                             active    Gi0/2
+
+### SW-EDGE :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  up                    up
+Vlan90                     192.168.90.1    YES manual up                    up
+Vlan91                     192.168.91.1    YES manual up                    up
+
+### SW-EDGE :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.90.0/24 is directly connected, Vlan90
+C       192.168.91.0/24 is directly connected, Vlan91
+
+### PC-SUP :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.90.20
+   Subnet Mask.....................: 255.255.255.128
+   Default Gateway.................: 192.168.90.1
+   DNS Servers.....................: (none configured)
+
+### SRV-APP :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.91.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.91.1
+   DNS Servers.....................: (none configured)","PC-SUP's subnet mask is 255.255.255.128 while its gateway interface Vlan90 uses 255.255.255.0, so the host and its gateway disagree about the size of the segment.",L3,GATEWAY,Medium,no,R002,"1. On PC-SUP, set the subnet mask to 255.255.255.0 to match the Vlan90 SVI
+2. Confirm the host mask and the gateway interface mask agree
+3. Re-test: PC-SUP ping a host above 192.168.90.127 in the same VLAN",simulated-lab
+CASE-011,New staff PCs get no address while statically addressed PCs work,"PC-NEW never receives a lease and ends up with 0.0.0.0. PC-STATIC in the same VLAN, configured by hand, works normally. The DHCP pool exists on SW-DHCP and the service is running.",Multilayer switch lab (simulated). SW-DHCP routes between VLAN 100 STAFF = 192.168.100.0/24 and VLAN 101 SERVERS = 192.168.101.0/24 and is also the DHCP server for the staff VLAN. Staff clients must receive addresses out of 192.168.100.0/24 with gateway 192.168.100.1.,"### PC-STATIC :: ping 192.168.100.1
+PC-STATIC> ping 192.168.100.1
+
+Pinging 192.168.100.1 with 32 bytes of data:
+
+Reply from 192.168.100.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.100.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.100.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.100.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.100.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### SW-DHCP :: show ip dhcp binding
+Bindings from all pools not associated with VRF:
+IP address    Client-ID/Hardware address    Lease expiration    Type
+! no bindings
+
+### SW-DHCP :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+100  STAFF                            active    Gi0/1, Gi0/2
+101  SERVERS                          active    Gi0/3
+
+### SW-DHCP :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  up                    up
+GigabitEthernet0/3         unassigned      YES unset  up                    up
+Vlan100                    192.168.100.1   YES manual up                    up
+Vlan101                    192.168.101.1   YES manual up                    up
+
+### SW-DHCP :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.100.0/24 is directly connected, Vlan100
+C       192.168.101.0/24 is directly connected, Vlan101
+
+### SW-DHCP :: show running-config | section dhcp
+ip dhcp pool STAFF-POOL
+ network 192.168.10.0 255.255.255.0
+ default-router 192.168.100.1
+ dns-server 192.168.101.10
+!
+
+### PC-NEW :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 0.0.0.0
+   Subnet Mask.....................: 0.0.0.0
+   Default Gateway.................: 0.0.0.0
+   DNS Servers.....................: (none configured)
+   DHCP Enabled....................: Yes
+   DHCP request timed out — no DHCP server responded, address is unconfigured.
+
+### PC-STATIC :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.100.30
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.100.1
+   DNS Servers.....................: (none configured)
+
+### SRV-DNS :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.101.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.101.1
+   DNS Servers.....................: (none configured)","The STAFF-POOL network is 192.168.10.0/24, which matches none of SW-DHCP's attached subnets, so no pool serves the 192.168.100.0/24 staff segment and its clients get nothing.",L3,DHCP,High,no,R010,"1. On SW-DHCP: ip dhcp pool STAFF-POOL
+2. Correct the pool network: network 192.168.100.0 255.255.255.0
+3. Confirm default-router 192.168.100.1 is now inside the pool network
+4. Release and renew on PC-NEW, then confirm it leases an address in 192.168.100.0/24",simulated-lab
+CASE-012,DHCP clients lease a correct address but hand back an unusable gateway,"PC-LEASED receives 192.168.110.25/24 from DHCP and can reach other lab hosts, but nothing off-subnet works. Its default gateway shows as 192.168.111.1, which is not an address on the lab network.",Campus router lab (simulated). R-CAMPUS Gi0/0 = 192.168.110.1/24 serves the lab LAN and is its DHCP server; Gi0/1 = 192.168.112.1/24 serves the server LAN. Lab clients must be handed the gateway 192.168.110.1.,"### PC-LEASED :: ping 192.168.111.1
+PC-LEASED> ping 192.168.111.1
+
+Pinging 192.168.111.1 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.111.1:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### PC-LEASED :: ping 192.168.112.10
+PC-LEASED> ping 192.168.112.10
+
+Pinging 192.168.112.10 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.112.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### R-CAMPUS :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.110.1   YES manual up                    up
+GigabitEthernet0/1         192.168.112.1   YES manual up                    up
+
+### R-CAMPUS :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.110.0/24 is directly connected, GigabitEthernet0/0
+C       192.168.112.0/24 is directly connected, GigabitEthernet0/1
+
+### R-CAMPUS :: show running-config | section dhcp
+ip dhcp excluded-address 192.168.110.1
+ip dhcp excluded-address 192.168.110.10
+ip dhcp pool LAB-POOL
+ network 192.168.110.0 255.255.255.0
+ default-router 192.168.111.1
+!
+
+### PC-LEASED :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.110.25
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.111.1
+   DNS Servers.....................: (none configured)
+   DHCP Enabled....................: Yes
+
+### SRV-LMS :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.112.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.112.1
+   DNS Servers.....................: (none configured)","LAB-POOL hands out default-router 192.168.111.1, which is outside the pool's own 192.168.110.0/24 network and belongs to no interface, so every client installs an unreachable gateway.",L3,DHCP,High,no,R003; R010,"1. On R-CAMPUS: ip dhcp pool LAB-POOL
+2. Correct the option: default-router 192.168.110.1
+3. Release and renew on PC-LEASED
+4. Confirm ipconfig /all shows Default Gateway 192.168.110.1
+5. Re-test: PC-LEASED ping 192.168.112.10",simulated-lab
+CASE-013,Branch application server drops off the network whenever a laptop leases an address,"SRV-APP becomes unreachable minutes after PC-TEMP is plugged in. Both hosts log an address conflict, and the branch switch shows two MAC addresses claiming 192.168.120.50.","Branch switch lab (simulated). SW-BR is the multilayer switch and the DHCP server for VLAN 120 BRANCH = 192.168.120.0/24, gateway 192.168.120.1. The statically addressed server SRV-APP owns 192.168.120.50 and that address is supposed to be excluded from the pool.","### SW-BR :: show ip dhcp conflict
+IP address       Detection method   Detection time
+192.168.120.50   Gratuitous ARP     Aug 24 2026 09:12 AM
+
+### PC-TEMP :: ping 192.168.120.1
+PC-TEMP> ping 192.168.120.1
+
+Pinging 192.168.120.1 with 32 bytes of data:
+
+Reply from 192.168.120.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.120.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.120.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.120.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.120.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### SW-BR :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+120  BRANCH                           active    Gi0/1, Gi0/2
+
+### SW-BR :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  up                    up
+Vlan120                    192.168.120.1   YES manual up                    up
+
+### SW-BR :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.120.0/24 is directly connected, Vlan120
+
+### SW-BR :: show running-config | section dhcp
+ip dhcp excluded-address 192.168.12.1
+ip dhcp pool BRANCH-POOL
+ network 192.168.120.0 255.255.255.0
+ default-router 192.168.120.1
+!
+
+### SRV-APP :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.120.50
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.120.1
+   DNS Servers.....................: (none configured)
+
+### PC-TEMP :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.120.50
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.120.1
+   DNS Servers.....................: (none configured)
+   DHCP Enabled....................: Yes","The exclusion was typed as 192.168.12.1, an address outside the pool network, so 192.168.120.50 was never excluded and DHCP leased the server's address to PC-TEMP.",L3,DHCP,Critical,no,R001; R010,"1. On SW-BR: no ip dhcp excluded-address 192.168.12.1
+2. Add the correct exclusion: ip dhcp excluded-address 192.168.120.1 192.168.120.60
+3. Release the incorrect lease: clear ip dhcp binding 192.168.120.50
+4. Renew on PC-TEMP and confirm it receives a different address
+5. Confirm SRV-APP is reachable again on 192.168.120.50",simulated-lab
+CASE-014,Classroom VLAN gets no leases after the DHCP relay configuration was lost,Every client in the classroom VLAN comes up with 0.0.0.0 after the switch was reloaded from an older configuration file. The central DHCP server SRV-DHCP is up and still leasing addresses to other VLANs.,Campus switch lab (simulated). SW-CAMP routes between VLAN 130 CLASSROOM = 192.168.130.0/24 and VLAN 131 SERVERS = 192.168.131.0/24. DHCP is not served by the switch: the classroom SVI is supposed to relay requests to the central server 192.168.131.10 with ip helper-address.,"### SW-CAMP :: show running-config interface Vlan130
+interface Vlan130
+ ip address 192.168.130.1 255.255.255.0
+! no ip helper-address is configured
+
+### SRV-DHCP :: ping 192.168.131.1
+SRV-DHCP> ping 192.168.131.1
+
+Pinging 192.168.131.1 with 32 bytes of data:
+
+Reply from 192.168.131.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.131.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.131.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.131.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.131.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### SW-CAMP :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+130  CLASSROOM                        active    Gi0/1
+131  SERVERS                          active    Gi0/2
+
+### SW-CAMP :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  up                    up
+Vlan130                    192.168.130.1   YES manual up                    up
+Vlan131                    192.168.131.1   YES manual up                    up
+
+### SW-CAMP :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.130.0/24 is directly connected, Vlan130
+C       192.168.131.0/24 is directly connected, Vlan131
+
+### PC-CLASS :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 0.0.0.0
+   Subnet Mask.....................: 0.0.0.0
+   Default Gateway.................: 0.0.0.0
+   DNS Servers.....................: (none configured)
+   DHCP Enabled....................: Yes
+   DHCP request timed out — no DHCP server responded, address is unconfigured.
+
+### SRV-DHCP :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.131.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.131.1
+   DNS Servers.....................: (none configured)","The classroom segment has no DHCP pool on any device and the Vlan130 SVI has no ip helper-address, so DHCP discovers from PC-CLASS are never answered or relayed.",L3,DHCP,High,no,R010,"1. On SW-CAMP: interface Vlan130
+2. Restore the relay: ip helper-address 192.168.131.10
+3. Confirm the helper address appears in show running-config interface Vlan130
+4. Release and renew on PC-CLASS and confirm it leases an address in 192.168.130.0/24",simulated-lab
+CASE-015,Till PCs lease correct addresses but cannot resolve any name,"PC-TILL leases 192.168.140.30/24 with the right gateway and can ping the server VLAN by address, but every name lookup times out. Its DNS server is listed as 192.168.140.253.",Retail switch lab (simulated). SW-RETAIL routes between VLAN 140 TILLS = 192.168.140.0/24 and VLAN 141 SERVERS = 192.168.141.0/24 and serves DHCP for the till VLAN. The only name server in this topology is SRV-DNS on 192.168.141.53.,"### PC-TILL :: ping 192.168.140.253
+PC-TILL> ping 192.168.140.253
+
+Pinging 192.168.140.253 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.140.253:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### PC-TILL :: ping 192.168.141.53
+PC-TILL> ping 192.168.141.53
+
+Pinging 192.168.141.53 with 32 bytes of data:
+
+Reply from 192.168.141.53: bytes=32 time<1ms TTL=128
+Reply from 192.168.141.53: bytes=32 time<1ms TTL=128
+Reply from 192.168.141.53: bytes=32 time<1ms TTL=128
+Reply from 192.168.141.53: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.141.53:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### SW-RETAIL :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+140  TILLS                            active    Gi0/1
+141  SERVERS                          active    Gi0/2
+
+### SW-RETAIL :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  up                    up
+Vlan140                    192.168.140.1   YES manual up                    up
+Vlan141                    192.168.141.1   YES manual up                    up
+
+### SW-RETAIL :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.140.0/24 is directly connected, Vlan140
+C       192.168.141.0/24 is directly connected, Vlan141
+
+### SW-RETAIL :: show running-config | section dhcp
+ip dhcp excluded-address 192.168.140.1
+ip dhcp pool TILL-POOL
+ network 192.168.140.0 255.255.255.0
+ default-router 192.168.140.1
+ dns-server 192.168.140.253
+!
+
+### PC-TILL :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.140.30
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.140.1
+   DNS Servers.....................: 192.168.140.253
+   DHCP Enabled....................: Yes
+
+### SRV-DNS :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.141.53
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.141.1
+   DNS Servers.....................: (none configured)","TILL-POOL hands out dns-server 192.168.140.253, an address no device or host in the topology owns, so clients receive a resolver that does not exist.",L3,DHCP,High,no,R010,"1. On SW-RETAIL: ip dhcp pool TILL-POOL
+2. Correct the option: dns-server 192.168.141.53
+3. Release and renew on PC-TILL
+4. Confirm ipconfig /all lists 192.168.141.53 as the DNS server",simulated-lab
+CASE-016,Office PCs resolve nothing because they query the switch instead of the DNS server,"PC-USER can ping every host by address, including the DNS server, but nslookup for any name times out. Its configured DNS server is 192.168.150.1.",Office switch lab (simulated). SW-OFFICE is a multilayer switch; VLAN 150 OFFICE = 192.168.150.0/24 with SVI 192.168.150.1 as the gateway. The only name server in the topology is SRV-DNS on 192.168.150.50; the SVI does not run DNS.,"### PC-USER :: ping 192.168.150.50
+PC-USER> ping 192.168.150.50
+
+Pinging 192.168.150.50 with 32 bytes of data:
+
+Reply from 192.168.150.50: bytes=32 time<1ms TTL=128
+Reply from 192.168.150.50: bytes=32 time<1ms TTL=128
+Reply from 192.168.150.50: bytes=32 time<1ms TTL=128
+Reply from 192.168.150.50: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.150.50:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### PC-USER :: nslookup srv-dns.lab
+Server:  192.168.150.1
+Address: 192.168.150.1
+
+DNS request timed out.
+*** Request to 192.168.150.1 timed-out
+
+### SW-OFFICE :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+150  OFFICE                           active    Gi0/1, Gi0/2
+
+### SW-OFFICE :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  up                    up
+Vlan150                    192.168.150.1   YES manual up                    up
+
+### SW-OFFICE :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.150.0/24 is directly connected, Vlan150
+
+### PC-USER :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.150.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.150.1
+   DNS Servers.....................: 192.168.150.1
+
+### SRV-DNS :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.150.50
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.150.1
+   DNS Servers.....................: 192.168.150.50","PC-USER's resolver is set to the gateway address 192.168.150.1 instead of the DNS server 192.168.150.50, so lookups are sent to a device that answers no queries.",L7,DNS,High,no,R011,"1. On PC-USER, set the DNS server to 192.168.150.50
+2. Confirm ipconfig /all lists 192.168.150.50 as the DNS server
+3. Re-test: nslookup srv-dns.lab from PC-USER",simulated-lab
+CASE-017,Plant floor PCs point at a DNS address that exists nowhere in the network,"Name resolution fails on every plant PC. The configured DNS server 10.10.10.53 does not answer ping either, and no device in the topology uses that address.",Plant switch lab (simulated). SW-PLANT is a multilayer switch; VLAN 160 PLANT = 192.168.160.0/24 with SVI 192.168.160.1 as the gateway. SRV-DNS on 192.168.160.50 is the resolver for the plant clients. There is no 10.10.0.0/8 network in this topology.,"### PC-USER :: ping 10.10.10.53
+PC-USER> ping 10.10.10.53
+
+Pinging 10.10.10.53 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 10.10.10.53:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### PC-USER :: ping 192.168.160.50
+PC-USER> ping 192.168.160.50
+
+Pinging 192.168.160.50 with 32 bytes of data:
+
+Reply from 192.168.160.50: bytes=32 time<1ms TTL=128
+Reply from 192.168.160.50: bytes=32 time<1ms TTL=128
+Reply from 192.168.160.50: bytes=32 time<1ms TTL=128
+Reply from 192.168.160.50: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.160.50:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### SW-PLANT :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+160  PLANT                            active    Gi0/1, Gi0/2
+
+### SW-PLANT :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  up                    up
+Vlan160                    192.168.160.1   YES manual up                    up
+
+### SW-PLANT :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.160.0/24 is directly connected, Vlan160
+
+### PC-USER :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.160.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.160.1
+   DNS Servers.....................: 10.10.10.53
+
+### SRV-DNS :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.160.50
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.160.1
+   DNS Servers.....................: 192.168.160.50",PC-USER's resolver 10.10.10.53 is an address no device or host owns — a leftover from a previous site design — so DNS queries leave for a destination that does not exist.,L7,DNS,High,no,R011,"1. On PC-USER, replace the DNS server with 192.168.160.50
+2. Confirm no host still references 10.10.10.53
+3. Re-test: nslookup srv-dns.lab from PC-USER",simulated-lab
+CASE-018,Clinic PC was configured with no DNS server at all,PC-USER reaches every address it is given but no application that uses a hostname works. ipconfig /all shows no DNS server entry.,Clinic switch lab (simulated). SW-CLINIC is a multilayer switch; VLAN 170 CLINIC = 192.168.170.0/24 with SVI 192.168.170.1 as the gateway. SRV-DNS on 192.168.170.50 must be configured as the resolver on every clinic host.,"### PC-USER :: ping 192.168.170.50
+PC-USER> ping 192.168.170.50
+
+Pinging 192.168.170.50 with 32 bytes of data:
+
+Reply from 192.168.170.50: bytes=32 time<1ms TTL=128
+Reply from 192.168.170.50: bytes=32 time<1ms TTL=128
+Reply from 192.168.170.50: bytes=32 time<1ms TTL=128
+Reply from 192.168.170.50: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.170.50:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### PC-USER :: nslookup srv-dns.lab
+*** Can't find server name: no DNS servers are configured
+
+### SW-CLINIC :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+170  CLINIC                           active    Gi0/1, Gi0/2
+
+### SW-CLINIC :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  up                    up
+Vlan170                    192.168.170.1   YES manual up                    up
+
+### SW-CLINIC :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.170.0/24 is directly connected, Vlan170
+
+### PC-USER :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.170.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.170.1
+   DNS Servers.....................: (none configured)
+
+### SRV-DNS :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.170.50
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.170.1
+   DNS Servers.....................: 192.168.170.50","PC-USER has an empty DNS server list, so it has no resolver to send queries to even though the DNS server is up and reachable.",L7,DNS,High,no,R011,"1. On PC-USER, configure the DNS server 192.168.170.50
+2. Confirm ipconfig /all lists the DNS server
+3. Re-test: nslookup srv-dns.lab from PC-USER",simulated-lab
+CASE-019,Depot name resolution stopped after the DNS server's switchport was shut down,"All depot clients lost name resolution at the same moment. Their DNS configuration is correct, but the server does not answer ping and the switch shows its port as administratively down.",Depot switch lab (simulated). SW-DEPOT is a multilayer switch; VLAN 180 DEPOT = 192.168.180.0/24 with SVI 192.168.180.1 as the gateway. SRV-DNS on 192.168.180.50 is cabled to Gi0/2 and is the only resolver in the topology.,"### PC-USER :: ping 192.168.180.50
+PC-USER> ping 192.168.180.50
+
+Pinging 192.168.180.50 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.180.50:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### PC-USER :: ping 192.168.180.1
+PC-USER> ping 192.168.180.1
+
+Pinging 192.168.180.1 with 32 bytes of data:
+
+Reply from 192.168.180.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.180.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.180.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.180.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.180.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### SW-DEPOT :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+180  DEPOT                            active    Gi0/1, Gi0/2
+
+### SW-DEPOT :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  administratively down down
+Vlan180                    192.168.180.1   YES manual up                    up
+
+### SW-DEPOT :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.180.0/24 is directly connected, Vlan180
+
+### PC-USER :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.180.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.180.1
+   DNS Servers.....................: 192.168.180.50
+
+### SRV-DNS :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.180.50
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.180.1
+   DNS Servers.....................: 192.168.180.50","SW-DEPOT Gi0/2, the access port serving SRV-DNS, is administratively down, so the correctly configured resolver is unreachable and every lookup times out.",L7,DNS,Critical,no,R004; R011,"1. On SW-DEPOT: interface GigabitEthernet0/2
+2. Bring the port up: no shutdown
+3. Confirm Gi0/2 is up/up in show ip interface brief
+4. Re-test: PC-USER ping 192.168.180.50, then nslookup srv-dns.lab",simulated-lab
+CASE-020,Branch cannot reach the HQ server although the WAN link is up,"PC-BR pings its gateway and the WAN address 10.0.0.2 on R-HQ, but every attempt to reach 192.168.191.10 fails. HQ can reach the branch LAN in the other direction.","Two-router WAN lab (simulated). R-BR Gi0/0 = 192.168.190.1/24 serves the branch LAN; R-HQ Gi0/0 = 192.168.191.1/24 serves the HQ LAN. The routers are joined by 10.0.0.0/30 (R-BR 10.0.0.1, R-HQ 10.0.0.2). Both routers run static routing only and each must carry a route for the other site's LAN.","### PC-BR :: ping 10.0.0.2
+PC-BR> ping 10.0.0.2
+
+Pinging 10.0.0.2 with 32 bytes of data:
+
+Reply from 10.0.0.2: bytes=32 time<1ms TTL=128
+Reply from 10.0.0.2: bytes=32 time<1ms TTL=128
+Reply from 10.0.0.2: bytes=32 time<1ms TTL=128
+Reply from 10.0.0.2: bytes=32 time<1ms TTL=128
+
+Ping statistics for 10.0.0.2:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### PC-BR :: ping 192.168.191.10
+PC-BR> ping 192.168.191.10
+
+Pinging 192.168.191.10 with 32 bytes of data:
+
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+
+Ping statistics for 192.168.191.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### R-BR :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.190.1   YES manual up                    up
+GigabitEthernet0/1         10.0.0.1        YES manual up                    up
+
+### R-BR :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.190.0/24 is directly connected, GigabitEthernet0/0
+C       10.0.0.0/30 is directly connected, GigabitEthernet0/1
+
+### R-HQ :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.191.1   YES manual up                    up
+GigabitEthernet0/1         10.0.0.2        YES manual up                    up
+
+### R-HQ :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.191.0/24 is directly connected, GigabitEthernet0/0
+C       10.0.0.0/30 is directly connected, GigabitEthernet0/1
+S       192.168.190.0/24 [1/0] via 10.0.0.1
+
+### PC-BR :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.190.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.190.1
+   DNS Servers.....................: (none configured)
+
+### SRV-HQ :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.191.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.191.1
+   DNS Servers.....................: (none configured)",R-BR has no route for 192.168.191.0/24 at all — its routing table contains only connected networks — so HQ-bound traffic is dropped at the branch router.,L3,ROUTING,High,no,R006,"1. On R-BR: ip route 192.168.191.0 255.255.255.0 10.0.0.2
+2. Confirm the route appears in show ip route on R-BR
+3. Re-test: PC-BR ping 192.168.191.10",simulated-lab
+CASE-021,Static route was entered for the wrong destination network,"The change record says a route to the HQ LAN was added on R-BR last week, and show ip route does list a static entry, yet PC-BR still cannot reach 192.168.201.10. The next hop 10.0.0.2 responds to ping.","Two-router WAN lab (simulated). R-BR Gi0/0 = 192.168.200.1/24 serves the branch LAN; R-HQ Gi0/0 = 192.168.201.1/24 serves the HQ LAN, joined by 10.0.0.0/30. The route R-BR needs is 192.168.201.0/24 via 10.0.0.2.","### PC-BR :: ping 10.0.0.2
+PC-BR> ping 10.0.0.2
+
+Pinging 10.0.0.2 with 32 bytes of data:
+
+Reply from 10.0.0.2: bytes=32 time<1ms TTL=128
+Reply from 10.0.0.2: bytes=32 time<1ms TTL=128
+Reply from 10.0.0.2: bytes=32 time<1ms TTL=128
+Reply from 10.0.0.2: bytes=32 time<1ms TTL=128
+
+Ping statistics for 10.0.0.2:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### PC-BR :: ping 192.168.201.10
+PC-BR> ping 192.168.201.10
+
+Pinging 192.168.201.10 with 32 bytes of data:
+
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+
+Ping statistics for 192.168.201.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### R-BR :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.200.1   YES manual up                    up
+GigabitEthernet0/1         10.0.0.1        YES manual up                    up
+
+### R-BR :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.200.0/24 is directly connected, GigabitEthernet0/0
+C       10.0.0.0/30 is directly connected, GigabitEthernet0/1
+S       192.168.20.0/24 [1/0] via 10.0.0.2
+
+### R-HQ :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.201.1   YES manual up                    up
+GigabitEthernet0/1         10.0.0.2        YES manual up                    up
+
+### R-HQ :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.201.0/24 is directly connected, GigabitEthernet0/0
+C       10.0.0.0/30 is directly connected, GigabitEthernet0/1
+S       192.168.200.0/24 [1/0] via 10.0.0.1
+
+### PC-BR :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.200.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.200.1
+   DNS Servers.....................: (none configured)
+
+### SRV-HQ :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.201.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.201.1
+   DNS Servers.....................: (none configured)","R-BR's static route was typed as 192.168.20.0/24 via 10.0.0.2 instead of 192.168.201.0/24, so the destination the branch actually needs is still uncovered while the table looks populated.",L3,ROUTING,High,no,R006,"1. On R-BR: no ip route 192.168.20.0 255.255.255.0 10.0.0.2
+2. Add the correct route: ip route 192.168.201.0 255.255.255.0 10.0.0.2
+3. Confirm show ip route lists 192.168.201.0/24 via 10.0.0.2
+4. Re-test: PC-BR ping 192.168.201.10",simulated-lab
+CASE-022,Inter-VLAN traffic stops after a switch reload although both SVIs are up,"Every host can reach its own gateway SVI but no VLAN can reach another. Both SVIs are up/up and correctly addressed, and show ip route prints only connected entries with no gateway of last resort.","Multilayer switch lab (simulated). SW-L3 is the only Layer 3 device: VLAN 210 USERS = 192.168.210.0/24 and VLAN 211 SERVERS = 192.168.211.0/24, each with an up SVI acting as the gateway. Inter-VLAN routing on this switch requires ip routing.","### PC-USER :: ping 192.168.210.1
+PC-USER> ping 192.168.210.1
+
+Pinging 192.168.210.1 with 32 bytes of data:
+
+Reply from 192.168.210.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.210.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.210.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.210.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.210.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### PC-USER :: ping 192.168.211.10
+PC-USER> ping 192.168.211.10
+
+Pinging 192.168.211.10 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.211.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### SW-L3 :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+210  USERS                            active    Gi0/1
+211  SERVERS                          active    Gi0/2
+
+### SW-L3 :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  up                    up
+Vlan210                    192.168.210.1   YES manual up                    up
+Vlan211                    192.168.211.1   YES manual up                    up
+
+### SW-L3 :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+     (ip routing is not enabled on this device)
+C       192.168.210.0/24 is directly connected, Vlan210
+C       192.168.211.0/24 is directly connected, Vlan211
+
+### PC-USER :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.210.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.210.1
+   DNS Servers.....................: (none configured)
+
+### SRV-INTRA :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.211.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.211.1
+   DNS Servers.....................: (none configured)","ip routing is not enabled on SW-L3 after the reload, so the switch never forwards between its own SVIs even though both interfaces are up and addressed.",L3,ROUTING,Critical,no,R006,"1. On SW-L3, enter global configuration and run: ip routing
+2. Confirm show ip route no longer reports that routing is disabled
+3. Save the configuration so the setting survives the next reload
+4. Re-test: PC-USER ping 192.168.211.10",simulated-lab
+CASE-023,Office loses all external access after the default route is removed,"PC-OFFICE reaches everything inside the office and can ping the ISP's link address 203.0.113.1, but the hosted portal 198.51.100.10 is unreachable. show ip route on R-EDGE has no gateway of last resort.",Internet edge lab (simulated). R-EDGE Gi0/0 = 192.168.220.1/24 serves the office LAN and Gi0/1 = 203.0.113.2/30 connects to R-ISP 203.0.113.1. Externally hosted services live on 198.51.100.0/24 behind the ISP. R-EDGE reaches everything outside the office through a default route to 203.0.113.1.,"### PC-OFFICE :: ping 203.0.113.1
+PC-OFFICE> ping 203.0.113.1
+
+Pinging 203.0.113.1 with 32 bytes of data:
+
+Reply from 203.0.113.1: bytes=32 time<1ms TTL=128
+Reply from 203.0.113.1: bytes=32 time<1ms TTL=128
+Reply from 203.0.113.1: bytes=32 time<1ms TTL=128
+Reply from 203.0.113.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 203.0.113.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### PC-OFFICE :: ping 198.51.100.10
+PC-OFFICE> ping 198.51.100.10
+
+Pinging 198.51.100.10 with 32 bytes of data:
+
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+
+Ping statistics for 198.51.100.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### R-EDGE :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.220.1   YES manual up                    up
+GigabitEthernet0/1         203.0.113.2     YES manual up                    up
+
+### R-EDGE :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.220.0/24 is directly connected, GigabitEthernet0/0
+C       203.0.113.0/30 is directly connected, GigabitEthernet0/1
+
+### R-ISP :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         203.0.113.1     YES manual up                    up
+GigabitEthernet0/1         198.51.100.1    YES manual up                    up
+
+### R-ISP :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       203.0.113.0/30 is directly connected, GigabitEthernet0/0
+C       198.51.100.0/24 is directly connected, GigabitEthernet0/1
+S       192.168.220.0/24 [1/0] via 203.0.113.2
+
+### PC-OFFICE :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.220.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.220.1
+   DNS Servers.....................: (none configured)
+
+### SRV-PORTAL :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 198.51.100.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 198.51.100.1
+   DNS Servers.....................: (none configured)","R-EDGE has no default route: the entry ip route 0.0.0.0 0.0.0.0 203.0.113.1 is missing, so any destination outside the two connected networks is dropped.",L3,ROUTING,Critical,no,R006,"1. On R-EDGE: ip route 0.0.0.0 0.0.0.0 203.0.113.1
+2. Confirm show ip route reports the gateway of last resort as 203.0.113.1
+3. Re-test: PC-OFFICE ping 198.51.100.10",simulated-lab
+CASE-024,Storage LAN became unreachable after the campus interface mask was widened,"Since the campus interface was re-addressed, PC-CAMPUS treats the storage server as a local host and ARPs for it instead of routing to it. The storage server answers nothing, and R-DC has two connected networks that overlap.","Data centre router lab (simulated). R-DC Gi0/1 serves the campus LAN and Gi0/2 serves the storage LAN 192.168.30.0/24 with gateway 192.168.30.1. The campus LAN is documented as 192.168.0.0/24, not as a /16.","### PC-CAMPUS :: ping 192.168.30.10
+PC-CAMPUS> ping 192.168.30.10
+
+Pinging 192.168.30.10 with 32 bytes of data:
+
+Destination host unreachable (the host ARPs locally).
+Destination host unreachable (the host ARPs locally).
+Destination host unreachable (the host ARPs locally).
+Destination host unreachable (the host ARPs locally).
+
+Ping statistics for 192.168.30.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### R-DC :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         192.168.0.1     YES manual up                    up
+GigabitEthernet0/2         192.168.30.1    YES manual up                    up
+
+### R-DC :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.0.0/16 is directly connected, GigabitEthernet0/1
+C       192.168.30.0/24 is directly connected, GigabitEthernet0/2
+
+### PC-CAMPUS :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.5.20
+   Subnet Mask.....................: 255.255.0.0
+   Default Gateway.................: 192.168.0.1
+   DNS Servers.....................: (none configured)
+
+### SRV-STORE :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.30.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.30.1
+   DNS Servers.....................: (none configured)","R-DC Gi0/1 is configured 192.168.0.1 255.255.0.0, so its connected network 192.168.0.0/16 swallows the storage network 192.168.30.0/24 on Gi0/2 — two interfaces claim overlapping address space.",L3,ROUTING,High,no,R009,"1. On R-DC: interface GigabitEthernet0/1
+2. Restore the documented mask: ip address 192.168.0.1 255.255.255.0
+3. Correct the mask on every campus host to 255.255.255.0
+4. Confirm show ip route no longer shows overlapping connected networks
+5. Re-test: PC-CAMPUS ping 192.168.30.10",simulated-lab
+CASE-025,File share access is blocked by an access list left over from an incident,"PC-USER can ping SRV-FILE and reach it over HTTPS, but every attempt to open the SMB file share fails. The router increments deny counters on Gi0/0 whenever the share is opened.",Single router lab (simulated). R-FW Gi0/0 = 192.168.230.1/24 serves the user LAN and Gi0/1 = 192.168.231.1/24 serves the server LAN. Access list BLOCK-SMB is applied inbound on Gi0/0. Users are required to reach the file share on 192.168.231.10 over TCP 445.,"### PC-USER :: ping 192.168.231.10
+PC-USER> ping 192.168.231.10
+
+Pinging 192.168.231.10 with 32 bytes of data:
+
+Reply from 192.168.231.10: bytes=32 time<1ms TTL=128
+Reply from 192.168.231.10: bytes=32 time<1ms TTL=128
+Reply from 192.168.231.10: bytes=32 time<1ms TTL=128
+Reply from 192.168.231.10: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.231.10:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### R-FW :: show ip access-lists BLOCK-SMB | include matches
+    10 deny tcp 192.168.230.0 0.0.0.255 host 192.168.231.10 eq 445 (148 matches)
+
+### R-FW :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.230.1   YES manual up                    up
+GigabitEthernet0/1         192.168.231.1   YES manual up                    up
+
+### R-FW :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.230.0/24 is directly connected, GigabitEthernet0/0
+C       192.168.231.0/24 is directly connected, GigabitEthernet0/1
+
+### R-FW :: show ip access-lists
+Extended IP access list BLOCK-SMB
+    10 deny tcp 192.168.230.0 0.0.0.255 host 192.168.231.10 eq 445
+    20 permit ip any any
+
+### R-FW :: show running-config | include access-group
+interface GigabitEthernet0/0
+ ip access-group BLOCK-SMB in
+!
+
+### PC-USER :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.230.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.230.1
+   DNS Servers.....................: (none configured)
+
+### SRV-FILE :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.231.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.231.1
+   DNS Servers.....................: (none configured)","BLOCK-SMB entry 10 explicitly denies tcp from 192.168.230.0/24 to host 192.168.231.10 eq 445, so the required file-share flow is dropped inbound on Gi0/0.",L4,ACL,High,yes,R012,"1. Confirm with the security owner that SMB to 192.168.231.10 is now permitted
+2. On R-FW: ip access-list extended BLOCK-SMB
+3. Remove the obsolete entry: no 10
+4. Confirm show ip access-lists no longer lists the deny for tcp eq 445
+5. Re-test: open the share on 192.168.231.10 from PC-USER",simulated-lab
+CASE-026,Guest network can still reach HR because the filter sits on the wrong interface,"A guest laptop can open the HR server directly. The GUEST-FILTER access list exists and looks correct, but its counters never increment for guest traffic.","Single router lab (simulated). R-GW Gi0/0 = 192.168.232.1/24 serves the guest LAN, Gi0/1 = 192.168.233.1/24 the internal LAN, Gi0/2 = 192.168.234.1/24 the DMZ. Policy: guests may reach the DMZ web server but must never reach the internal LAN. The filter therefore has to be applied inbound on the guest interface Gi0/0.","### PC-GUEST :: ping 192.168.233.10
+PC-GUEST> ping 192.168.233.10
+
+Pinging 192.168.233.10 with 32 bytes of data:
+
+Reply from 192.168.233.10: bytes=32 time<1ms TTL=128
+Reply from 192.168.233.10: bytes=32 time<1ms TTL=128
+Reply from 192.168.233.10: bytes=32 time<1ms TTL=128
+Reply from 192.168.233.10: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.233.10:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### R-GW :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.232.1   YES manual up                    up
+GigabitEthernet0/1         192.168.233.1   YES manual up                    up
+GigabitEthernet0/2         192.168.234.1   YES manual up                    up
+
+### R-GW :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.232.0/24 is directly connected, GigabitEthernet0/0
+C       192.168.233.0/24 is directly connected, GigabitEthernet0/1
+C       192.168.234.0/24 is directly connected, GigabitEthernet0/2
+
+### R-GW :: show ip access-lists
+Extended IP access list GUEST-FILTER
+    10 deny ip 192.168.232.0 0.0.0.255 192.168.233.0 0.0.0.255
+    20 permit ip any any
+
+### R-GW :: show running-config | include access-group
+interface GigabitEthernet0/2
+ ip access-group GUEST-FILTER in
+!
+
+### PC-GUEST :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.232.30
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.232.1
+   DNS Servers.....................: (none configured)
+
+### SRV-HR :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.233.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.233.1
+   DNS Servers.....................: (none configured)
+
+### SRV-WEB :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.234.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.234.1
+   DNS Servers.....................: (none configured)","GUEST-FILTER is applied inbound on Gi0/2 (the DMZ), an interface guest traffic never enters, so nothing evaluates the deny and guest-to-internal traffic is forwarded.",L4,ACL,Critical,yes,R012,"1. On R-GW: interface GigabitEthernet0/2
+2. Remove the misplaced binding: no ip access-group GUEST-FILTER in
+3. On R-GW: interface GigabitEthernet0/0
+4. Apply the filter where guest traffic enters: ip access-group GUEST-FILTER in
+5. Confirm the binding in show running-config | include access-group
+6. Re-test: PC-GUEST must fail to reach 192.168.233.10 and still reach 192.168.234.10",simulated-lab
+CASE-027,Database access list permits the wrong host address,"The HR workstation cannot open the payroll database. The access list was written for this project and the permit entry looks right at a glance, but the deny counter at the end of the list increments on every attempt.",Single router lab (simulated). R-APP Gi0/0 = 192.168.235.1/24 serves the HR LAN and Gi0/1 = 192.168.236.1/24 the database LAN. Access list PERMIT-DB is applied inbound on Gi0/0 and must permit the HR workstation 192.168.235.21 to reach 192.168.236.10 on TCP 1433.,"### PC-HR :: ping 192.168.236.10
+PC-HR> ping 192.168.236.10
+
+Pinging 192.168.236.10 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.236.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### R-APP :: show ip access-lists PERMIT-DB | include matches
+    20 deny ip any any (312 matches)
+
+### R-APP :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.235.1   YES manual up                    up
+GigabitEthernet0/1         192.168.236.1   YES manual up                    up
+
+### R-APP :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.235.0/24 is directly connected, GigabitEthernet0/0
+C       192.168.236.0/24 is directly connected, GigabitEthernet0/1
+
+### R-APP :: show ip access-lists
+Extended IP access list PERMIT-DB
+    10 permit tcp host 192.168.235.20 host 192.168.236.10 eq 1433
+    20 deny ip any any
+
+### R-APP :: show running-config | include access-group
+interface GigabitEthernet0/0
+ ip access-group PERMIT-DB in
+!
+
+### PC-HR :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.235.21
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.235.1
+   DNS Servers.....................: (none configured)
+
+### SRV-DB :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.236.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.236.1
+   DNS Servers.....................: (none configured)","PERMIT-DB entry 10 permits host 192.168.235.20 instead of the actual workstation 192.168.235.21, so the intended flow falls through to the explicit deny at entry 20.",L4,ACL,High,yes,R012,"1. On R-APP: ip access-list extended PERMIT-DB
+2. Remove the incorrect entry: no 10
+3. Add the correct one: 10 permit tcp host 192.168.235.21 host 192.168.236.10 eq 1433
+4. Confirm the entry in show ip access-lists PERMIT-DB
+5. Re-test: open the database from PC-HR",simulated-lab
+CASE-028,Exam application on TCP 8443 was never permitted by the student access list,"Students can browse normal web sites but the new exam client, which connects on TCP 8443, times out for everyone. Nothing in the access list mentions 8443 and there is no explicit deny entry to point at.",Campus router lab (simulated). R-CAMPUS2 Gi0/0 = 192.168.237.1/24 serves the student LAN and Gi0/1 = 192.168.238.1/24 the services LAN. Access list WEB-ONLY is applied inbound on Gi0/0. The exam service on 192.168.238.10 must be reachable on TCP 8443.,"### PC-STUDENT :: telnet 192.168.238.10 8443
+Trying 192.168.238.10...
+% Connection timed out; remote host not responding
+
+### R-CAMPUS2 :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.237.1   YES manual up                    up
+GigabitEthernet0/1         192.168.238.1   YES manual up                    up
+
+### R-CAMPUS2 :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.237.0/24 is directly connected, GigabitEthernet0/0
+C       192.168.238.0/24 is directly connected, GigabitEthernet0/1
+
+### R-CAMPUS2 :: show ip access-lists
+Extended IP access list WEB-ONLY
+    10 permit tcp 192.168.237.0 0.0.0.255 any eq 80
+    20 permit tcp 192.168.237.0 0.0.0.255 any eq 443
+
+### R-CAMPUS2 :: show running-config | include access-group
+interface GigabitEthernet0/0
+ ip access-group WEB-ONLY in
+!
+
+### PC-STUDENT :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.237.40
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.237.1
+   DNS Servers.....................: (none configured)
+
+### SRV-EXAM :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.238.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.238.1
+   DNS Servers.....................: (none configured)","WEB-ONLY permits only TCP 80 and TCP 443, so the required TCP 8443 flow matches no entry and is dropped by the implicit deny at the end of the list.",L4,ACL,High,yes,R012,"1. On R-CAMPUS2: ip access-list extended WEB-ONLY
+2. Permit the exam service: 30 permit tcp 192.168.237.0 0.0.0.255 host 192.168.238.10 eq 8443
+3. Confirm the new entry in show ip access-lists WEB-ONLY
+4. Re-test: launch the exam client from PC-STUDENT",simulated-lab
+CASE-029,Inside hosts cannot reach the internet because no NAT outside interface is marked,"PC-INSIDE reaches the ISP link address but nothing beyond it. show ip nat translations is empty and the translation counters never increase, even though the overload rule and its access list are present.",Internet edge lab (simulated). R-NAT Gi0/0 = 192.168.240.1/24 is the inside LAN and Gi0/1 = 203.0.113.2/30 faces the ISP. Inside hosts must be translated to the Gi0/1 address by an overload rule. NAT requires ip nat inside on the inside interface and ip nat outside on the outside interface.,"### PC-INSIDE :: ping 203.0.113.1
+PC-INSIDE> ping 203.0.113.1
+
+Pinging 203.0.113.1 with 32 bytes of data:
+
+Reply from 203.0.113.1: bytes=32 time<1ms TTL=128
+Reply from 203.0.113.1: bytes=32 time<1ms TTL=128
+Reply from 203.0.113.1: bytes=32 time<1ms TTL=128
+Reply from 203.0.113.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 203.0.113.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### PC-INSIDE :: ping 198.51.100.10
+PC-INSIDE> ping 198.51.100.10
+
+Pinging 198.51.100.10 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 198.51.100.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### R-NAT :: show ip nat translations
+! the translation table is empty
+
+### R-NAT :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.240.1   YES manual up                    up
+GigabitEthernet0/1         203.0.113.2     YES manual up                    up
+
+### R-NAT :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is 203.0.113.1 to network 0.0.0.0
+
+C       192.168.240.0/24 is directly connected, GigabitEthernet0/0
+C       203.0.113.0/30 is directly connected, GigabitEthernet0/1
+S*      0.0.0.0/0 [1/0] via 203.0.113.1
+
+### R-NAT :: show ip access-lists
+Extended IP access list NAT-INSIDE
+    10 permit ip 192.168.240.0 0.0.0.255 any
+
+### R-NAT :: show running-config | include access-group
+! no ip access-group is applied to any interface
+
+### R-NAT :: show ip nat statistics
+Total active translations: 0 (0 static, 0 dynamic; 0 extended)
+Peak translations: 0
+Outside interfaces:
+  (none)
+Inside interfaces:
+  GigabitEthernet0/0
+Hits: 0  Misses: 0
+Dynamic mappings:
+-- Inside Source access-list NAT-INSIDE interface GigabitEthernet0/1 overload
+
+### R-ISP :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         203.0.113.1     YES manual up                    up
+GigabitEthernet0/1         198.51.100.1    YES manual up                    up
+
+### R-ISP :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is 203.0.113.2 to network 0.0.0.0
+
+C       203.0.113.0/30 is directly connected, GigabitEthernet0/0
+C       198.51.100.0/24 is directly connected, GigabitEthernet0/1
+S*      0.0.0.0/0 [1/0] via 203.0.113.2
+
+### PC-INSIDE :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.240.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.240.1
+   DNS Servers.....................: (none configured)
+
+### SRV-PUBLIC :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 198.51.100.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 198.51.100.1
+   DNS Servers.....................: (none configured)","Gi0/1 is missing ip nat outside, so R-NAT has an inside interface but no outside interface and performs no translation at all.",L3,NAT,High,no,R013,"1. On R-NAT: interface GigabitEthernet0/1
+2. Mark the outside interface: ip nat outside
+3. Confirm both sides appear in show ip nat statistics
+4. Re-test: PC-INSIDE ping 198.51.100.10 and confirm a translation is created",simulated-lab
+CASE-030,NAT rule references an access list that does not exist on the router,"Inside hosts get no internet access. Both NAT interfaces are marked correctly and an overload rule is configured, but no traffic is ever matched for translation.",Internet edge lab (simulated). R-NAT Gi0/0 = 192.168.241.1/24 is the inside LAN (ip nat inside) and Gi0/1 = 203.0.113.2/30 faces the ISP (ip nat outside). The overload rule selects the traffic to translate by access list name; the access list that exists on the router is called NAT_INSIDE.,"### R-NAT :: show running-config | include ip nat inside source
+ip nat inside source list NAT-INSIDE interface GigabitEthernet0/1 overload
+! the referenced list NAT-INSIDE is not defined; the router only has NAT_INSIDE
+
+### PC-INSIDE :: ping 198.51.100.10
+PC-INSIDE> ping 198.51.100.10
+
+Pinging 198.51.100.10 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 198.51.100.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### R-NAT :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.241.1   YES manual up                    up
+GigabitEthernet0/1         203.0.113.2     YES manual up                    up
+
+### R-NAT :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is 203.0.113.1 to network 0.0.0.0
+
+C       192.168.241.0/24 is directly connected, GigabitEthernet0/0
+C       203.0.113.0/30 is directly connected, GigabitEthernet0/1
+S*      0.0.0.0/0 [1/0] via 203.0.113.1
+
+### R-NAT :: show ip access-lists
+Extended IP access list NAT_INSIDE
+    10 permit ip 192.168.241.0 0.0.0.255 any
+
+### R-NAT :: show running-config | include access-group
+! no ip access-group is applied to any interface
+
+### R-NAT :: show ip nat statistics
+Total active translations: 0 (0 static, 0 dynamic; 0 extended)
+Peak translations: 0
+Outside interfaces:
+  GigabitEthernet0/1
+Inside interfaces:
+  GigabitEthernet0/0
+Hits: 0  Misses: 0
+Dynamic mappings:
+-- Inside Source access-list NAT-INSIDE interface GigabitEthernet0/1 overload
+
+### R-ISP :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         203.0.113.1     YES manual up                    up
+GigabitEthernet0/1         198.51.100.1    YES manual up                    up
+
+### R-ISP :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is 203.0.113.2 to network 0.0.0.0
+
+C       203.0.113.0/30 is directly connected, GigabitEthernet0/0
+C       198.51.100.0/24 is directly connected, GigabitEthernet0/1
+S*      0.0.0.0/0 [1/0] via 203.0.113.2
+
+### PC-INSIDE :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.241.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.241.1
+   DNS Servers.....................: (none configured)
+
+### SRV-PUBLIC :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 198.51.100.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 198.51.100.1
+   DNS Servers.....................: (none configured)","The NAT rule matches access list NAT-INSIDE, but the router only has NAT_INSIDE (underscore), so the rule selects no traffic and nothing is translated.",L3,NAT,High,no,R013,"1. On R-NAT: no ip nat inside source list NAT-INSIDE interface GigabitEthernet0/1 overload
+2. Re-apply it with the existing list: ip nat inside source list NAT_INSIDE interface GigabitEthernet0/1 overload
+3. Confirm the dynamic mapping in show ip nat statistics
+4. Re-test: PC-INSIDE ping 198.51.100.10",simulated-lab
+CASE-031,Dynamic NAT rule has neither a pool nor an overload interface,"Internet access fails for all inside hosts. The NAT interfaces and the access list are correct, but show ip nat statistics lists a dynamic mapping with no pool and no interface to translate to.","Internet edge lab (simulated). R-NAT Gi0/0 = 192.168.242.1/24 is the inside LAN (ip nat inside) and Gi0/1 = 203.0.113.2/30 faces the ISP (ip nat outside). This site has a single public address, so inside hosts must be translated with interface overload rather than an address pool.","### PC-INSIDE :: ping 198.51.100.10
+PC-INSIDE> ping 198.51.100.10
+
+Pinging 198.51.100.10 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 198.51.100.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### R-NAT :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.242.1   YES manual up                    up
+GigabitEthernet0/1         203.0.113.2     YES manual up                    up
+
+### R-NAT :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is 203.0.113.1 to network 0.0.0.0
+
+C       192.168.242.0/24 is directly connected, GigabitEthernet0/0
+C       203.0.113.0/30 is directly connected, GigabitEthernet0/1
+S*      0.0.0.0/0 [1/0] via 203.0.113.1
+
+### R-NAT :: show ip access-lists
+Extended IP access list NAT-INSIDE
+    10 permit ip 192.168.242.0 0.0.0.255 any
+
+### R-NAT :: show running-config | include access-group
+! no ip access-group is applied to any interface
+
+### R-NAT :: show ip nat statistics
+Total active translations: 0 (0 static, 0 dynamic; 0 extended)
+Peak translations: 0
+Outside interfaces:
+  GigabitEthernet0/1
+Inside interfaces:
+  GigabitEthernet0/0
+Hits: 0  Misses: 0
+Dynamic mappings:
+-- Inside Source access-list NAT-INSIDE
+
+### R-ISP :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         203.0.113.1     YES manual up                    up
+GigabitEthernet0/1         198.51.100.1    YES manual up                    up
+
+### R-ISP :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is 203.0.113.2 to network 0.0.0.0
+
+C       203.0.113.0/30 is directly connected, GigabitEthernet0/0
+C       198.51.100.0/24 is directly connected, GigabitEthernet0/1
+S*      0.0.0.0/0 [1/0] via 203.0.113.2
+
+### PC-INSIDE :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.242.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.242.1
+   DNS Servers.....................: (none configured)
+
+### SRV-PUBLIC :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 198.51.100.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 198.51.100.1
+   DNS Servers.....................: (none configured)","The dynamic NAT rule names access list NAT-INSIDE but specifies neither an address pool nor an overload interface, so there is no outside address to translate inside hosts to.",L3,NAT,High,no,R013,"1. On R-NAT: no ip nat inside source list NAT-INSIDE
+2. Add the overload form: ip nat inside source list NAT-INSIDE interface GigabitEthernet0/1 overload
+3. Confirm the mapping shows the outside interface in show ip nat statistics
+4. Re-test: PC-INSIDE ping 198.51.100.10 and confirm a translation appears",simulated-lab
+CASE-032,NAT access list selects an inside network that does not exist at this site,"No inside host is ever translated. The NAT interfaces, the rule and the access list are all present, and the access list even permits a 192.168 network — but it is not the network the inside hosts are on.",Internet edge lab (simulated). R-NAT Gi0/0 = 192.168.243.1/24 is the inside LAN (ip nat inside) and Gi0/1 = 203.0.113.2/30 faces the ISP (ip nat outside). The NAT access list must match the inside network 192.168.243.0/24.,"### PC-INSIDE :: ping 198.51.100.10
+PC-INSIDE> ping 198.51.100.10
+
+Pinging 198.51.100.10 with 32 bytes of data:
+
+Request timed out (no translation is created).
+Request timed out (no translation is created).
+Request timed out (no translation is created).
+Request timed out (no translation is created).
+
+Ping statistics for 198.51.100.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### R-NAT :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         192.168.243.1   YES manual up                    up
+GigabitEthernet0/1         203.0.113.2     YES manual up                    up
+
+### R-NAT :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is 203.0.113.1 to network 0.0.0.0
+
+C       192.168.243.0/24 is directly connected, GigabitEthernet0/0
+C       203.0.113.0/30 is directly connected, GigabitEthernet0/1
+S*      0.0.0.0/0 [1/0] via 203.0.113.1
+
+### R-NAT :: show ip access-lists
+Extended IP access list NAT-INSIDE
+    10 permit ip 192.168.24.0 0.0.0.255 any
+
+### R-NAT :: show running-config | include access-group
+! no ip access-group is applied to any interface
+
+### R-NAT :: show ip nat statistics
+Total active translations: 0 (0 static, 0 dynamic; 0 extended)
+Peak translations: 0
+Outside interfaces:
+  GigabitEthernet0/1
+Inside interfaces:
+  GigabitEthernet0/0
+Hits: 0  Misses: 0
+Dynamic mappings:
+-- Inside Source access-list NAT-INSIDE interface GigabitEthernet0/1 overload
+
+### R-ISP :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         203.0.113.1     YES manual up                    up
+GigabitEthernet0/1         198.51.100.1    YES manual up                    up
+
+### R-ISP :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is 203.0.113.2 to network 0.0.0.0
+
+C       203.0.113.0/30 is directly connected, GigabitEthernet0/0
+C       198.51.100.0/24 is directly connected, GigabitEthernet0/1
+S*      0.0.0.0/0 [1/0] via 203.0.113.2
+
+### PC-INSIDE :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.243.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.243.1
+   DNS Servers.....................: (none configured)
+
+### SRV-PUBLIC :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 198.51.100.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 198.51.100.1
+   DNS Servers.....................: (none configured)","Access list NAT-INSIDE permits 192.168.24.0/24, which is not on any inside interface (the inside LAN is 192.168.243.0/24), so no inside traffic matches the translation rule.",L3,NAT,High,no,R013,"1. On R-NAT: ip access-list extended NAT-INSIDE
+2. Remove the wrong entry: no 10
+3. Add the correct inside network: 10 permit ip 192.168.243.0 0.0.0.255 any
+4. Confirm the entry in show ip access-lists NAT-INSIDE
+5. Re-test: PC-INSIDE ping 198.51.100.10 and confirm a translation is created",simulated-lab
+CASE-033,Guest wireless clients can reach the internal HR server,"A laptop associated to the guest SSID browsed straight to the internal HR server and opened it. Guests receive addresses in the guest VLAN as designed, but nothing stops their traffic from being routed into the internal VLAN.","Wireless lab (simulated). AP-GUEST broadcasts the guest SSID GUEST-WIFI mapped to VLAN 50 and trunks VLANs 20 and 50 to SW-WIFI, which routes between VLAN 20 INTERNAL = 192.168.20.0/24 and VLAN 50 GUEST = 192.168.50.0/24. Policy: guest clients must never reach the internal VLAN, which requires client isolation or an isolation access list on the guest SSID.","### PC-GUEST :: ping 192.168.20.10
+PC-GUEST> ping 192.168.20.10
+
+Pinging 192.168.20.10 with 32 bytes of data:
+
+Reply from 192.168.20.10: bytes=32 time<1ms TTL=128
+Reply from 192.168.20.10: bytes=32 time<1ms TTL=128
+Reply from 192.168.20.10: bytes=32 time<1ms TTL=128
+Reply from 192.168.20.10: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.20.10:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### AP-GUEST :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+20   WLAN20                           active    
+50   WLAN50                           active    
+
+### AP-GUEST :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+Dot11Radio0                unassigned      YES unset  up                    up
+
+### AP-GUEST :: show interfaces trunk
+Port        Mode         Encapsulation  Status        Native vlan
+Gi0/1       on           802.1q         trunking      1
+
+Port        Vlans allowed on trunk
+Gi0/1       20,50
+
+### AP-GUEST :: show wlan summary
+SSID Name                VLAN  Security     Guest  Client-Isolation
+GUEST-WIFI               50    wpa2-psk     yes    none
+
+### SW-WIFI :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+20   INTERNAL                         active    Gi0/1
+50   GUEST                            active    
+
+### SW-WIFI :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+Vlan20                     192.168.20.1    YES manual up                    up
+Vlan50                     192.168.50.1    YES manual up                    up
+GigabitEthernet0/24        unassigned      YES unset  up                    up
+
+### SW-WIFI :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.20.0/24 is directly connected, Vlan20
+C       192.168.50.0/24 is directly connected, Vlan50
+
+### SW-WIFI :: show interfaces trunk
+Port        Mode         Encapsulation  Status        Native vlan
+Gi0/24      on           802.1q         trunking      1
+
+Port        Vlans allowed on trunk
+Gi0/24      20,50
+
+### PC-GUEST :: ipconfig /all
+Wireless0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.50.30
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.50.1
+   DNS Servers.....................: (none configured)
+   SSID............................: GUEST-WIFI
+
+### SRV-HR :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.20.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.20.1
+   DNS Servers.....................: (none configured)","The guest SSID GUEST-WIFI has no client isolation and no isolation access list, so guest traffic is routed into the internal VLAN exactly like staff traffic.",L2,WIRELESS,Critical,yes,R014,"1. Agree the guest policy with the security owner before changing the SSID
+2. On AP-GUEST, apply client isolation to the SSID GUEST-WIFI
+3. On SW-WIFI, create an isolation access list that denies 192.168.50.0/24 to 192.168.20.0/24 and permits the rest, then apply it inbound on Vlan50
+4. Confirm the isolation configuration in show wlan summary and show ip access-lists
+5. Re-test: PC-GUEST must fail to reach 192.168.20.10 and still reach its gateway",simulated-lab
+CASE-034,Re-imaged laptop never associates because its SSID name does not exist,PC-SALES shows no wireless association at all: it keeps searching for the network CORP-WIFI. Other laptops in the same office associate normally and the access point reports no failed authentication attempts.,"Wireless lab (simulated). AP-SALES broadcasts a single corporate SSID mapped to VLAN 60 CORP-WIRELESS = 192.168.60.0/24, whose gateway is the Vlan60 SVI 192.168.60.1 on SW-WIFI. The SSID broadcast by the access point is the only one in the topology.","### PC-SALES :: netsh wlan show interfaces
+    Name       : Wireless0
+    State      : disconnected
+    Profile    : CORP-WIFI
+    Reason     : the network was not found
+
+### AP-SALES :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+60   WLAN60                           active    
+
+### AP-SALES :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+Dot11Radio0                unassigned      YES unset  up                    up
+
+### AP-SALES :: show interfaces trunk
+Port        Mode         Encapsulation  Status        Native vlan
+Gi0/1       on           802.1q         trunking      1
+
+Port        Vlans allowed on trunk
+Gi0/1       60
+
+### AP-SALES :: show wlan summary
+SSID Name                VLAN  Security     Guest  Client-Isolation
+CORP_WIFI                60    wpa2-ent     no     none
+
+### SW-WIFI :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+60   CORP-WIRELESS                    active    Gi0/1
+
+### SW-WIFI :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+Vlan60                     192.168.60.1    YES manual up                    up
+GigabitEthernet0/24        unassigned      YES unset  up                    up
+
+### SW-WIFI :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.60.0/24 is directly connected, Vlan60
+
+### SW-WIFI :: show interfaces trunk
+Port        Mode         Encapsulation  Status        Native vlan
+Gi0/24      on           802.1q         trunking      1
+
+Port        Vlans allowed on trunk
+Gi0/24      60
+
+### PC-SALES :: ipconfig /all
+Wireless0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.60.30
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.60.1
+   DNS Servers.....................: (none configured)
+   SSID............................: CORP-WIFI
+
+### SRV-CORP :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.60.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.60.1
+   DNS Servers.....................: (none configured)","PC-SALES is configured for the SSID CORP-WIFI while the access point broadcasts CORP_WIFI (underscore), so the client never associates and its wireless adapter stays unassociated.",L2,WIRELESS,High,no,R014,"1. On PC-SALES, remove the CORP-WIFI wireless profile
+2. Join the broadcast SSID CORP_WIFI with the WPA2-Enterprise credentials
+3. Confirm the client appears in show wlan summary on AP-SALES
+4. Re-test: PC-SALES ping 192.168.60.1",simulated-lab
+CASE-035,Engineering wireless clients associate but land in the wrong VLAN,"PC-ENG associates to ENG-WIFI and shows full signal, but it never reaches its gateway 192.168.70.1 and cannot open the CAD server. A capture on the trunk shows its frames tagged with VLAN 60.","Wireless lab (simulated). AP-ENG trunks VLANs 60 and 70 to SW-WIFI, which routes between VLAN 60 GENERAL = 192.168.60.0/24 and VLAN 70 ENGINEERING = 192.168.70.0/24. Engineering wireless clients are addressed in 192.168.70.0/24, so the ENG-WIFI SSID must be mapped to VLAN 70.","### PC-ENG :: ping 192.168.70.1
+PC-ENG> ping 192.168.70.1
+
+Pinging 192.168.70.1 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.70.1:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### AP-ENG :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+60   WLAN60                           active    
+70   WLAN70                           active    
+
+### AP-ENG :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+Dot11Radio0                unassigned      YES unset  up                    up
+
+### AP-ENG :: show interfaces trunk
+Port        Mode         Encapsulation  Status        Native vlan
+Gi0/1       on           802.1q         trunking      1
+
+Port        Vlans allowed on trunk
+Gi0/1       60,70
+
+### AP-ENG :: show wlan summary
+SSID Name                VLAN  Security     Guest  Client-Isolation
+ENG-WIFI                 60    wpa2-psk     no     none
+
+### SW-WIFI :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+60   GENERAL                          active    
+70   ENGINEERING                      active    Gi0/1
+
+### SW-WIFI :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+Vlan60                     192.168.60.1    YES manual up                    up
+Vlan70                     192.168.70.1    YES manual up                    up
+GigabitEthernet0/24        unassigned      YES unset  up                    up
+
+### SW-WIFI :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.60.0/24 is directly connected, Vlan60
+C       192.168.70.0/24 is directly connected, Vlan70
+
+### SW-WIFI :: show interfaces trunk
+Port        Mode         Encapsulation  Status        Native vlan
+Gi0/24      on           802.1q         trunking      1
+
+Port        Vlans allowed on trunk
+Gi0/24      60,70
+
+### PC-ENG :: ipconfig /all
+Wireless0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.70.30
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.70.1
+   DNS Servers.....................: (none configured)
+   SSID............................: ENG-WIFI
+
+### SRV-CAD :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.70.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.70.1
+   DNS Servers.....................: (none configured)","The SSID ENG-WIFI is mapped to VLAN 60 while its clients are members of VLAN 70, so associated clients are bridged into the wrong subnet and never reach their gateway.",L2,WIRELESS,High,no,R014,"1. On AP-ENG, map the SSID ENG-WIFI to VLAN 70
+2. Confirm the mapping in show wlan summary
+3. Confirm VLAN 70 is allowed on the AP uplink trunk
+4. Re-test: PC-ENG ping 192.168.70.1, then reach 192.168.70.10",simulated-lab
+CASE-036,Warehouse scanners associate to the access point but reach nothing behind it,"Every handheld scanner shows a good wireless connection to WARE-WIFI, yet none can reach the warehouse management server or its gateway. Wired hosts in the same VLAN work normally.",Wireless lab (simulated). AP-WARE broadcasts WARE-WIFI mapped to VLAN 80 WAREHOUSE = 192.168.80.0/24 and reaches the rest of the network only through its single uplink Gi0/1 to SW-WIFI Gi0/24. SW-WIFI holds the Vlan80 SVI 192.168.80.1.,"### PC-SCAN :: ping 192.168.80.1
+PC-SCAN> ping 192.168.80.1
+
+Pinging 192.168.80.1 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.80.1:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### SRV-WMS :: ping 192.168.80.1
+SRV-WMS> ping 192.168.80.1
+
+Pinging 192.168.80.1 with 32 bytes of data:
+
+Reply from 192.168.80.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.80.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.80.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.80.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.80.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### AP-WARE :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+80   WLAN80                           active    
+
+### AP-WARE :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  administratively down down
+Dot11Radio0                unassigned      YES unset  up                    up
+
+### AP-WARE :: show interfaces trunk
+Port        Mode         Encapsulation  Status        Native vlan
+Gi0/1       on           802.1q         not-trunking  1
+
+Port        Vlans allowed on trunk
+Gi0/1       80
+
+### AP-WARE :: show wlan summary
+SSID Name                VLAN  Security     Guest  Client-Isolation
+WARE-WIFI                80    wpa2-psk     no     none
+
+### SW-WIFI :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+80   WAREHOUSE                        active    Gi0/1
+
+### SW-WIFI :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+Vlan80                     192.168.80.1    YES manual up                    up
+GigabitEthernet0/24        unassigned      YES unset  up                    up
+
+### SW-WIFI :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       192.168.80.0/24 is directly connected, Vlan80
+
+### SW-WIFI :: show interfaces trunk
+Port        Mode         Encapsulation  Status        Native vlan
+Gi0/24      on           802.1q         trunking      1
+
+Port        Vlans allowed on trunk
+Gi0/24      80
+
+### PC-SCAN :: ipconfig /all
+Wireless0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.80.30
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.80.1
+   DNS Servers.....................: (none configured)
+   SSID............................: WARE-WIFI
+
+### SRV-WMS :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 192.168.80.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.80.1
+   DNS Servers.....................: (none configured)","AP-WARE's only uplink Gi0/1 is administratively down, so associated clients can talk to the access point but no traffic leaves it toward the VLAN 80 gateway.",L2,WIRELESS,Critical,no,R004; R014,"1. On AP-WARE: interface GigabitEthernet0/1
+2. Bring the uplink up: no shutdown
+3. Confirm Gi0/1 is up/up and trunking VLAN 80
+4. Re-test: PC-SCAN ping 192.168.80.1, then reach 192.168.80.10",simulated-lab
+CASE-037,Site lost the data centre after the WAN interface was left shut down,"Nothing at the site can reach the data centre since last night's maintenance window. The static route for 172.16.20.0/24 is still in the configuration, but the WAN interface reports administratively down and the neighbour is not visible.",Two-router WAN lab (simulated). R-WAN Gi0/0 = 172.16.10.1/24 serves the site LAN and Gi0/1 = 172.16.0.1/30 is the WAN link to R-DC 172.16.0.2. Each router carries a static route for the other site's LAN. The WAN interface must be up for those routes to be usable.,"### PC-SITE :: ping 172.16.20.10
+PC-SITE> ping 172.16.20.10
+
+Pinging 172.16.20.10 with 32 bytes of data:
+
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+Destination host unreachable.
+
+Ping statistics for 172.16.20.10:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### PC-SITE :: ping 172.16.10.1
+PC-SITE> ping 172.16.10.1
+
+Pinging 172.16.10.1 with 32 bytes of data:
+
+Reply from 172.16.10.1: bytes=32 time<1ms TTL=128
+Reply from 172.16.10.1: bytes=32 time<1ms TTL=128
+Reply from 172.16.10.1: bytes=32 time<1ms TTL=128
+Reply from 172.16.10.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 172.16.10.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### R-WAN :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         172.16.10.1     YES manual up                    up
+GigabitEthernet0/1         172.16.0.1      YES manual administratively down down
+
+### R-WAN :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       172.16.10.0/24 is directly connected, GigabitEthernet0/0
+S       172.16.20.0/24 [1/0] via 172.16.0.2
+
+### R-DC :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0         172.16.20.1     YES manual up                    up
+GigabitEthernet0/1         172.16.0.2      YES manual up                    up
+
+### R-DC :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       172.16.20.0/24 is directly connected, GigabitEthernet0/0
+C       172.16.0.0/30 is directly connected, GigabitEthernet0/1
+S       172.16.10.0/24 [1/0] via 172.16.0.1
+
+### PC-SITE :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 172.16.10.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 172.16.10.1
+   DNS Servers.....................: (none configured)
+
+### SRV-DC :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 172.16.20.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 172.16.20.1
+   DNS Servers.....................: (none configured)","R-WAN Gi0/1 is administratively down (shutdown was left in place after maintenance), so the only path toward 172.16.20.0/24 is unusable.",L1,INTERFACE_CONFIG,Critical,no,R004,"1. On R-WAN: interface GigabitEthernet0/1
+2. Bring the interface up: no shutdown
+3. Confirm Gi0/1 is up/up in show ip interface brief
+4. Re-test: PC-SITE ping 172.16.0.2, then ping 172.16.20.10",simulated-lab
+CASE-038,Floor users lose their gateway while the SVI is configured up,"PC-FLOOR cannot reach its gateway 172.16.85.1 or anything beyond it. The SVI is not shut down in the configuration, but show ip interface brief reports its line protocol as down.","Access switch lab (simulated). SW-FLOOR is a multilayer switch routing between VLAN 85 FLOOR-USERS = 172.16.85.0/24 and VLAN 86 FLOOR-SERVERS = 172.16.86.0/24. Both VLANs exist in the database with member access ports, and each SVI is the gateway for its VLAN.","### PC-FLOOR :: ping 172.16.85.1
+PC-FLOOR> ping 172.16.85.1
+
+Pinging 172.16.85.1 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 172.16.85.1:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### SRV-FLOOR :: ping 172.16.86.1
+SRV-FLOOR> ping 172.16.86.1
+
+Pinging 172.16.86.1 with 32 bytes of data:
+
+Reply from 172.16.86.1: bytes=32 time<1ms TTL=128
+Reply from 172.16.86.1: bytes=32 time<1ms TTL=128
+Reply from 172.16.86.1: bytes=32 time<1ms TTL=128
+Reply from 172.16.86.1: bytes=32 time<1ms TTL=128
+
+Ping statistics for 172.16.86.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+### SW-FLOOR :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+85   FLOOR-USERS                      active    Gi0/1
+86   FLOOR-SERVERS                    active    Gi0/2
+
+### SW-FLOOR :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  up                    up
+Vlan85                     172.16.85.1     YES manual down                  down
+Vlan86                     172.16.86.1     YES manual up                    up
+
+### SW-FLOOR :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       172.16.86.0/24 is directly connected, Vlan86
+
+### PC-FLOOR :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 172.16.85.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 172.16.85.1
+   DNS Servers.....................: (none configured)
+
+### SRV-FLOOR :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 172.16.86.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 172.16.86.1
+   DNS Servers.....................: (none configured)","The Vlan85 SVI is administratively up but its line protocol is down, so VLAN 85 has no working gateway even though the configuration looks correct.",L1,INTERFACE_CONFIG,High,no,R004; R015,"1. On SW-FLOOR, confirm VLAN 85 is active in show vlan brief
+2. Confirm at least one access port in VLAN 85 is up — an SVI stays down while every member port is down
+3. Bounce the SVI: interface Vlan85, shutdown, then no shutdown
+4. Confirm Vlan85 is up/up in show ip interface brief
+5. Re-test: PC-FLOOR ping 172.16.85.1",simulated-lab
+CASE-039,Gateway address was configured on an interface for a VLAN that does not exist,"PC-OPS cannot reach its gateway 172.16.88.1 even though that address is present on the switch and shows as up. The operations VLAN has no gateway of its own, and the switch has an interface for a VLAN that appears nowhere in show vlan brief.","Operations switch lab (simulated). SW-OPS is a multilayer switch. VLAN 88 OPS-USERS = 172.16.88.0/24 with documented gateway 172.16.88.1 and VLAN 89 OPS-SERVERS = 172.16.89.0/24 with gateway 172.16.89.1. Only VLANs 1, 88 and 89 exist in the VLAN database.","### PC-OPS :: ping 172.16.88.1
+PC-OPS> ping 172.16.88.1
+
+Pinging 172.16.88.1 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 172.16.88.1:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### SW-OPS :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+88   OPS-USERS                        active    Gi0/1
+89   OPS-SERVERS                      active    Gi0/2
+
+### SW-OPS :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  up                    up
+Vlan87                     172.16.88.1     YES manual up                    up
+Vlan89                     172.16.89.1     YES manual up                    up
+
+### SW-OPS :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       172.16.88.0/24 is directly connected, Vlan87
+C       172.16.89.0/24 is directly connected, Vlan89
+
+### PC-OPS :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 172.16.88.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 172.16.88.1
+   DNS Servers.....................: (none configured)
+
+### SRV-OPS :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 172.16.89.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 172.16.89.1
+   DNS Servers.....................: (none configured)","The users' gateway address 172.16.88.1 was configured on an SVI for VLAN 87, a VLAN that does not exist on the switch, so VLAN 88 has no SVI and the configured interface serves no VLAN.",L3,INTERFACE_CONFIG,High,no,R005; R015,"1. On SW-OPS: no interface Vlan87
+2. Create the correct interface: interface Vlan88
+3. Assign the documented gateway: ip address 172.16.88.1 255.255.255.0
+4. Bring it up: no shutdown
+5. Confirm Vlan88 is up/up and 172.16.88.0/24 is a connected route
+6. Re-test: PC-OPS ping 172.16.88.1",simulated-lab
+CASE-040,Admin VLAN gateway was configured with an unusable subnet mask,"PC-ADMIN cannot use its gateway. The Vlan91 interface is up and carries the expected address, but the mask printed by the switch is 255.255.0.255 and the connected network it derives from it is nonsense.",Administration switch lab (simulated). SW-ADMIN is a multilayer switch. VLAN 91 ADMIN-USERS = 172.16.91.0/24 with gateway 172.16.91.1 and VLAN 92 ADMIN-SERVERS = 172.16.92.0/24 with gateway 172.16.92.1. Every segment in this lab is a /24.,"### SW-ADMIN :: show running-config interface Vlan91
+interface Vlan91
+ ip address 172.16.91.1 255.255.0.255
+
+### PC-ADMIN :: ping 172.16.91.1
+PC-ADMIN> ping 172.16.91.1
+
+Pinging 172.16.91.1 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 172.16.91.1:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
+
+### SW-ADMIN :: show vlan brief
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    
+91   ADMIN-USERS                      active    Gi0/1
+92   ADMIN-SERVERS                    active    Gi0/2
+
+### SW-ADMIN :: show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1         unassigned      YES unset  up                    up
+GigabitEthernet0/2         unassigned      YES unset  up                    up
+Vlan91                     172.16.91.1     YES manual up                    up
+Vlan92                     172.16.92.1     YES manual up                    up
+
+### SW-ADMIN :: show ip route
+Codes: C - connected, S - static, S* - candidate default
+
+Gateway of last resort is not set
+
+C       172.16.92.0/24 is directly connected, Vlan92
+
+### PC-ADMIN :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 172.16.91.20
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 172.16.91.1
+   DNS Servers.....................: (none configured)
+
+### SRV-ADMIN :: ipconfig /all
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..:
+   IPv4 Address....................: 172.16.92.10
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 172.16.92.1
+   DNS Servers.....................: (none configured)","The Vlan91 SVI is configured with the non-contiguous mask 255.255.0.255 instead of 255.255.255.0, so the gateway interface has no valid network and cannot serve the admin VLAN.",L3,INTERFACE_CONFIG,High,no,R002,"1. On SW-ADMIN: interface Vlan91
+2. Re-apply the correct mask: ip address 172.16.91.1 255.255.255.0
+3. Confirm the mask in show ip interface brief and show running-config interface Vlan91
+4. Re-test: PC-ADMIN ping 172.16.91.1, then reach 172.16.92.10",simulated-lab

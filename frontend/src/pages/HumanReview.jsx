@@ -72,7 +72,7 @@ export function HumanReview() {
     return (
       <div className="space-y-4">
         <ErrorNotice error={loadError} />
-        <Link to="/" className="text-sm text-sky-400 hover:underline">
+        <Link to="/cases" className="text-sm text-sky-400 hover:underline">
           ← Back to the case library
         </Link>
       </div>

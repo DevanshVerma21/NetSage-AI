@@ -1,51 +1,53 @@
-ï»¿==============================================================================
-CASE-001  HR PC gets an IP but cannot reach the file server in VLAN 30
-  concept=VLAN  osi=L2  severity=High  source=simulated-lab
 ==============================================================================
-SYMPTOM: PC-HR in VLAN 20 has a valid IP address and can ping its own default gateway, but every attempt to reach the file server SRV-FILES at 192.168.30.10 times out. Users in Sales report the same problem reaching that server. Nothing was changed on the PCs.
+NETSAGE AI — DETERMINISTIC RULE CHECK, ALL CASES
+==============================================================================
+cases: 40   rules registered: 15   mandatory: 6
 
-DETERMINISTIC FINDINGS: 5
-
-[1] R004 Interface down  (Critical / L1 / INTERFACE_CONFIG)
-    SW1 Vlan30 is administratively down (shutdown is configured), so subnet 192.168.30.1/255.255.255.0 is unreachable.
-      evidence: SW1 / Vlan30 -> admin_state=shutdown line_protocol=down ip=192.168.30.1
-      affected: SW1, Vlan30
-      confirm with: show ip interface brief  /  show interfaces status
-
-[2] R005 Missing VLAN  (Critical / L2 / VLAN)
-    SW1 has SVI Vlan30 for VLAN 30, but VLAN 30 was never created in the VLAN database. The SVI can never come up, so that subnet has no gateway.
-      evidence: SW1 / Vlan30 -> SVI for VLAN 30, ip address 192.168.30.1 255.255.255.0
-      evidence: SW1 / vlan database -> VLANs present: 1 (default), 10 (SALES), 20 (HR)
-      affected: SW1, Vlan30, VLAN30
-      confirm with: show vlan brief
-
-[3] R005 Missing VLAN  (High / L2 / VLAN)
-    Host SRV-FILES is in VLAN 30, but VLAN 30 does not exist in the VLAN database on SW1.
-      evidence: SRV-FILES -> assigned to VLAN 30 via SW1
-      evidence: SW1 / vlan database -> VLANs present: 1 (default), 10 (SALES), 20 (HR)
-      affected: SRV-FILES, SW1, VLAN30
-      confirm with: show vlan brief
-
-[4] R005 Missing VLAN  (High / L2 / VLAN)
-    SW1 GigabitEthernet0/2 is an access port in VLAN 30, but VLAN 30 does not exist in the VLAN database on SW1.
-      evidence: SW1 / GigabitEthernet0/2 -> switchport access vlan 30
-      evidence: SW1 / vlan database -> VLANs present: 1 (default), 10 (SALES), 20 (HR)
-      affected: SW1, GigabitEthernet0/2, VLAN30
-      confirm with: show vlan brief
-
-[5] R006 Missing route  (High / L3 / ROUTING)
-    SW1 (first-hop gateway for PC-HR) has no route to 192.168.30.0/24, so the intended flow PC-HR -> SRV-FILES cannot be delivered. Checked at the first Layer 3 hop only.
-      evidence: SW1 / routing table -> C 192.168.10.0/24 via Vlan10; C 192.168.20.0/24 via Vlan20
-      evidence: intended flow -> PC-HR -> SRV-FILES (tcp/445) is expected to be permitted
-      evidence: lookup result -> no connected, static, dynamic or default route matches 192.168.30.10
-      affected: SW1, PC-HR, SRV-FILES
-      confirm with: show ip route
-
+CASE      CATEGORY          SEV       OSI  EXPECTED               FIRED                  RESULT
 ------------------------------------------------------------------------------
-EXPECTED-FAULT CHECK: PASS
-  expected: R004, R005, R006
-  fired:    R004, R005, R006
-
-==============================================================================
-SUMMARY: 1/1 cases match their expected_rule_ids
+CASE-001  VLAN              High      L2   R004,R005,R006         R004,R005,R006         PASS
+CASE-002  VLAN              High      L3   R003,R006,R015         R003,R006,R015         PASS
+CASE-003  VLAN              High      L2   R007                   R007                   PASS
+CASE-004  VLAN              High      L2   R008                   R008                   PASS
+CASE-005  VLAN              Medium    L2   R008                   R008                   PASS
+CASE-006  GATEWAY           High      L3   R003                   R003                   PASS
+CASE-007  GATEWAY           High      L3   R003                   R003                   PASS
+CASE-008  GATEWAY           High      L3   R003                   R003                   PASS
+CASE-009  GATEWAY           High      L3   R003                   R003                   PASS
+CASE-010  GATEWAY           Medium    L3   R002                   R002                   PASS
+CASE-011  DHCP              High      L3   R010                   R010                   PASS
+CASE-012  DHCP              High      L3   R003,R010              R003,R010              PASS
+CASE-013  DHCP              Critical  L3   R001,R010              R001,R010              PASS
+CASE-014  DHCP              High      L3   R010                   R010                   PASS
+CASE-015  DHCP              High      L3   R010                   R010                   PASS
+CASE-016  DNS               High      L7   R011                   R011                   PASS
+CASE-017  DNS               High      L7   R011                   R011                   PASS
+CASE-018  DNS               High      L7   R011                   R011                   PASS
+CASE-019  DNS               Critical  L7   R004,R011              R004,R011              PASS
+CASE-020  ROUTING           High      L3   R006                   R006                   PASS
+CASE-021  ROUTING           High      L3   R006                   R006                   PASS
+CASE-022  ROUTING           Critical  L3   R006                   R006                   PASS
+CASE-023  ROUTING           Critical  L3   R006                   R006                   PASS
+CASE-024  ROUTING           High      L3   R009                   R009                   PASS
+CASE-025  ACL               High      L4   R012                   R012                   PASS
+CASE-026  ACL               Critical  L4   R012                   R012                   PASS
+CASE-027  ACL               High      L4   R012                   R012                   PASS
+CASE-028  ACL               High      L4   R012                   R012                   PASS
+CASE-029  NAT               High      L3   R013                   R013                   PASS
+CASE-030  NAT               High      L3   R013                   R013                   PASS
+CASE-031  NAT               High      L3   R013                   R013                   PASS
+CASE-032  NAT               High      L3   R013                   R013                   PASS
+CASE-033  WIRELESS          Critical  L2   R014                   R014                   PASS
+CASE-034  WIRELESS          High      L2   R014                   R014                   PASS
+CASE-035  WIRELESS          High      L2   R014                   R014                   PASS
+CASE-036  WIRELESS          Critical  L2   R004,R014              R004,R014              PASS
+CASE-037  INTERFACE_CONFIG  Critical  L1   R004                   R004                   PASS
+CASE-038  INTERFACE_CONFIG  High      L1   R004,R015              R004,R015              PASS
+CASE-039  INTERFACE_CONFIG  High      L3   R005,R015              R005,R015              PASS
+CASE-040  INTERFACE_CONFIG  High      L3   R002                   R002                   PASS
+------------------------------------------------------------------------------
+total cases:      40
+total rules:      15 (6 mandatory, 9 optional)
+expected == fired: 40/40 cases
+failures:         0
 ==============================================================================
