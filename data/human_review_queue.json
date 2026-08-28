@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-26T09:40:13+00:00",
+  "generated_at": "2026-08-28T12:42:42+00:00",
   "source": "data/evaluation_results.json",
   "selection_priority": [
     "1 INCORRECT",
@@ -10,20 +10,104 @@
     "6 suspiciously unsupported diagnosis"
   ],
   "note": "Candidates only. Every entry is status='pending'; no human decision is recorded here. Reviews are made with 'python -m backend.scripts.review_candidates' and stored in data/reviews.json by the existing review service.",
-  "total_candidates": 26,
+  "total_candidates": 20,
   "candidates": [
     {
-      "case_id": "CASE-002",
-      "diagnosis_id": "DIAG-898c9af0b359",
+      "case_id": "CASE-005",
+      "diagnosis_id": null,
       "priority": 1,
       "priority_label": "evaluation_result = INCORRECT",
       "ai_diagnosis": {
-        "root_cause": "SW1 is missing the Switched Virtual Interface (SVI) for VLAN 30 (interface Vlan30). Consequently, 192.168.30.1 does not exist on SW1, preventing SRV-ERP from reaching its default gateway and preventing SW1 from routing traffic between VLAN 10 and VLAN 30.",
-        "osi_layer": "L3",
-        "category": "GATEWAY",
-        "next_command": "SW1: show ip interface brief",
+        "root_cause": null,
+        "osi_layer": null,
+        "category": null,
+        "next_command": null,
+        "fix_steps": [],
+        "insufficient_evidence": false
+      },
+      "expected_diagnosis": {
+        "expected_fault": "SW2's trunk uses switchport trunk native vlan 99 while SW1 and the documented design use native VLAN 1, so untagged traffic is placed in a different VLAN at each end of the same trunk.",
+        "osi_layer": "L2",
+        "category": "VLAN",
+        "expected_rule_ids": [
+          "R008"
+        ],
+        "expected_root_cause_keywords": [
+          "native vlan mismatch",
+          "native vlan 99",
+          "trunk",
+          "gi0/24",
+          "untagged"
+        ]
+      },
+      "model_confidence": null,
+      "effective_confidence": null,
+      "evidence_integrity": null,
+      "reconciliation": null,
+      "evaluation_result": "UNABLE_TO_EVALUATE",
+      "reason_for_review": [
+        "The Gemini call failed permanently (ProviderError), so the case has no diagnosis at all."
+      ],
+      "status": "pending"
+    },
+    {
+      "case_id": "CASE-001",
+      "diagnosis_id": "DIAG-0f8145b3c4bb",
+      "priority": 2,
+      "priority_label": "evaluation_result = PARTIAL",
+      "ai_diagnosis": {
+        "root_cause": "VLAN 30 has not been created in the VLAN database on SW1. As a result, access port Gi0/2 (connected to SRV-FILES) is inactive, interface Vlan30 is administratively down, and no route to 192.168.30.0/24 exists in the routing table.",
+        "osi_layer": "L2",
+        "category": "VLAN",
+        "next_command": "show vlan brief",
         "fix_steps": [
-          "1. [SW1] configure terminal; interface Vlan30; ip address 192.168.30.1 255.255.255.0; no shutdown; end — Create interface Vlan30 on SW1 with IP 192.168.30.1/24 to serve as the default gateway for VLAN 30 and enable inter-VLAN routing for SRV-ERP. (risk=low)"
+          "1. [SW1] configure terminal; vlan 30; name SERVERS; exit — Create VLAN 30 in the switch VLAN database so that access port Gi0/2 becomes active. (risk=low)",
+          "2. [SW1] configure terminal; interface Vlan30; no shutdown; end — Enable SVI Vlan30 to bring up the gateway interface and install the connected route for 192.168.30.0/24 into the routing table. (risk=low)"
+        ],
+        "insufficient_evidence": false
+      },
+      "expected_diagnosis": {
+        "expected_fault": "VLAN 30 was never created in the VLAN database on SW1. The Vlan30 SVI exists and holds 192.168.30.1/24 but is administratively shut down, so the SERVERS subnet has no active gateway, SW1 has no connected route to 192.168.30.0/24, and access port Gi0/2 shows Access Mode VLAN 30 as Inactive.",
+        "osi_layer": "L2",
+        "category": "VLAN",
+        "expected_rule_ids": [
+          "R004",
+          "R005",
+          "R006"
+        ],
+        "expected_root_cause_keywords": [
+          "VLAN 30",
+          "vlan database",
+          "not created",
+          "SVI",
+          "shutdown",
+          "inter-VLAN"
+        ]
+      },
+      "model_confidence": "high",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
+      "reconciliation": "agree",
+      "evaluation_result": "PARTIAL",
+      "reason_for_review": [
+        "Classified PARTIAL against the stored ground truth.",
+        "Evidence integrity FAILED — no citation could be located in the supplied output.",
+        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
+      ],
+      "status": "pending"
+    },
+    {
+      "case_id": "CASE-002",
+      "diagnosis_id": "DIAG-f58b515c6a83",
+      "priority": 2,
+      "priority_label": "evaluation_result = PARTIAL",
+      "ai_diagnosis": {
+        "root_cause": "Interface Vlan30 (SVI) has not been configured on SW1 with IP address 192.168.30.1/24. While Layer 2 VLAN 30 exists and Gi0/3 is assigned to it, the missing Layer 3 SVI prevents SW1 from serving as the default gateway for VLAN 30 and routing traffic between VLAN 30 and other subnets.",
+        "osi_layer": "L3",
+        "category": "VLAN",
+        "next_command": "show interface Vlan30",
+        "fix_steps": [
+          "1. [SW1] configure terminal; interface Vlan30; ip address 192.168.30.1 255.255.255.0; no shutdown; end — Create SVI Vlan30 and assign gateway address 192.168.30.1/24 to enable inter-VLAN routing for VLAN 30. (risk=low)"
         ],
         "insufficient_evidence": false
       },
@@ -48,376 +132,26 @@
       "effective_confidence": "low",
       "evidence_integrity": "failed",
       "reconciliation": "agree",
-      "evaluation_result": "INCORRECT",
-      "reason_for_review": [
-        "Classified INCORRECT against the stored ground truth.",
-        "Evidence integrity FAILED — no citation could be located in the supplied output.",
-        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
-      ],
-      "status": "pending"
-    },
-    {
-      "case_id": "CASE-010",
-      "diagnosis_id": "DIAG-8314f663dfa7",
-      "priority": 1,
-      "priority_label": "evaluation_result = INCORRECT",
-      "ai_diagnosis": {
-        "root_cause": "PC-SUP is configured with a /25 subnet mask (255.255.255.128) instead of the correct /24 subnet mask (255.255.255.0). As a result, PC-SUP treats any host in VLAN 90 with an IP address above 192.168.90.127 (such as 192.168.90.200) as off-subnet and routes traffic for them through its default gateway rather than resolving them via ARP locally.",
-        "osi_layer": "L3",
-        "category": "INTERFACE_CONFIG",
-        "next_command": "show ip interface Vlan90",
-        "fix_steps": [
-          "1. [PC-SUP] netsh interface ipv4 set address name=\"Ethernet\" static 192.168.90.20 255.255.255.0 192.168.90.1 — Reconfigure PC-SUP with the correct /24 subnet mask (255.255.255.0) matching the gateway and VLAN 90 design. (risk=low)"
-        ],
-        "insufficient_evidence": false
-      },
-      "expected_diagnosis": {
-        "expected_fault": "PC-SUP's subnet mask is 255.255.255.128 while its gateway interface Vlan90 uses 255.255.255.0, so the host and its gateway disagree about the size of the segment.",
-        "osi_layer": "L3",
-        "category": "GATEWAY",
-        "expected_rule_ids": [
-          "R002"
-        ],
-        "expected_root_cause_keywords": [
-          "subnet mask mismatch",
-          "255.255.255.128",
-          "vlan 90",
-          "PC-SUP"
-        ]
-      },
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "partial",
-      "evaluation_result": "INCORRECT",
-      "reason_for_review": [
-        "Classified INCORRECT against the stored ground truth.",
-        "Evidence integrity FAILED — no citation could be located in the supplied output.",
-        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
-      ],
-      "status": "pending"
-    },
-    {
-      "case_id": "CASE-019",
-      "diagnosis_id": "DIAG-a16ae59c00a0",
-      "priority": 1,
-      "priority_label": "evaluation_result = INCORRECT",
-      "ai_diagnosis": {
-        "root_cause": "GigabitEthernet0/2 on SW-DEPOT, which connects to DNS server SRV-DNS (192.168.180.50), is administratively down. This breaks physical connectivity to the DNS server, causing all name resolution requests from clients in VLAN 180 to fail.",
-        "osi_layer": "L1",
-        "category": "INTERFACE_CONFIG",
-        "next_command": "show interfaces GigabitEthernet0/2",
-        "fix_steps": [
-          "1. [SW-DEPOT] configure terminal; interface GigabitEthernet0/2; no shutdown; end — Re-enable port GigabitEthernet0/2 to restore Layer 1/2 link to SRV-DNS. (risk=low)"
-        ],
-        "insufficient_evidence": false
-      },
-      "expected_diagnosis": {
-        "expected_fault": "SW-DEPOT Gi0/2, the access port serving SRV-DNS, is administratively down, so the correctly configured resolver is unreachable and every lookup times out.",
-        "osi_layer": "L7",
-        "category": "DNS",
-        "expected_rule_ids": [
-          "R004",
-          "R011"
-        ],
-        "expected_root_cause_keywords": [
-          "dns unreachable",
-          "gi0/2 shutdown",
-          "192.168.180.50",
-          "access port down"
-        ]
-      },
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "agree",
-      "evaluation_result": "INCORRECT",
-      "reason_for_review": [
-        "Classified INCORRECT against the stored ground truth.",
-        "Evidence integrity FAILED — no citation could be located in the supplied output.",
-        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
-      ],
-      "status": "pending"
-    },
-    {
-      "case_id": "CASE-020",
-      "diagnosis_id": null,
-      "priority": 1,
-      "priority_label": "evaluation_result = INCORRECT",
-      "ai_diagnosis": {
-        "root_cause": null,
-        "osi_layer": null,
-        "category": null,
-        "next_command": null,
-        "fix_steps": [],
-        "insufficient_evidence": false
-      },
-      "expected_diagnosis": {
-        "expected_fault": "R-BR has no route for 192.168.191.0/24 at all — its routing table contains only connected networks — so HQ-bound traffic is dropped at the branch router.",
-        "osi_layer": "L3",
-        "category": "ROUTING",
-        "expected_rule_ids": [
-          "R006"
-        ],
-        "expected_root_cause_keywords": [
-          "missing route",
-          "192.168.191.0/24",
-          "R-BR",
-          "static routing"
-        ]
-      },
-      "model_confidence": null,
-      "effective_confidence": null,
-      "evidence_integrity": null,
-      "reconciliation": null,
-      "evaluation_result": "UNABLE_TO_EVALUATE",
-      "reason_for_review": [
-        "The Gemini call failed permanently (ProviderError), so the case has no diagnosis at all."
-      ],
-      "status": "pending"
-    },
-    {
-      "case_id": "CASE-021",
-      "diagnosis_id": null,
-      "priority": 1,
-      "priority_label": "evaluation_result = INCORRECT",
-      "ai_diagnosis": {
-        "root_cause": null,
-        "osi_layer": null,
-        "category": null,
-        "next_command": null,
-        "fix_steps": [],
-        "insufficient_evidence": false
-      },
-      "expected_diagnosis": {
-        "expected_fault": "R-BR's static route was typed as 192.168.20.0/24 via 10.0.0.2 instead of 192.168.201.0/24, so the destination the branch actually needs is still uncovered while the table looks populated.",
-        "osi_layer": "L3",
-        "category": "ROUTING",
-        "expected_rule_ids": [
-          "R006"
-        ],
-        "expected_root_cause_keywords": [
-          "wrong network in static route",
-          "192.168.20.0",
-          "192.168.201.0/24",
-          "R-BR"
-        ]
-      },
-      "model_confidence": null,
-      "effective_confidence": null,
-      "evidence_integrity": null,
-      "reconciliation": null,
-      "evaluation_result": "UNABLE_TO_EVALUATE",
-      "reason_for_review": [
-        "The Gemini call failed permanently (ProviderError), so the case has no diagnosis at all."
-      ],
-      "status": "pending"
-    },
-    {
-      "case_id": "CASE-024",
-      "diagnosis_id": null,
-      "priority": 1,
-      "priority_label": "evaluation_result = INCORRECT",
-      "ai_diagnosis": {
-        "root_cause": null,
-        "osi_layer": null,
-        "category": null,
-        "next_command": null,
-        "fix_steps": [],
-        "insufficient_evidence": false
-      },
-      "expected_diagnosis": {
-        "expected_fault": "R-DC Gi0/1 is configured 192.168.0.1 255.255.0.0, so its connected network 192.168.0.0/16 swallows the storage network 192.168.30.0/24 on Gi0/2 — two interfaces claim overlapping address space.",
-        "osi_layer": "L3",
-        "category": "ROUTING",
-        "expected_rule_ids": [
-          "R009"
-        ],
-        "expected_root_cause_keywords": [
-          "overlapping subnets",
-          "255.255.0.0",
-          "192.168.30.0/24",
-          "R-DC"
-        ]
-      },
-      "model_confidence": null,
-      "effective_confidence": null,
-      "evidence_integrity": null,
-      "reconciliation": null,
-      "evaluation_result": "UNABLE_TO_EVALUATE",
-      "reason_for_review": [
-        "The Gemini call failed permanently (ProviderError), so the case has no diagnosis at all."
-      ],
-      "status": "pending"
-    },
-    {
-      "case_id": "CASE-025",
-      "diagnosis_id": null,
-      "priority": 1,
-      "priority_label": "evaluation_result = INCORRECT",
-      "ai_diagnosis": {
-        "root_cause": null,
-        "osi_layer": null,
-        "category": null,
-        "next_command": null,
-        "fix_steps": [],
-        "insufficient_evidence": false
-      },
-      "expected_diagnosis": {
-        "expected_fault": "BLOCK-SMB entry 10 explicitly denies tcp from 192.168.230.0/24 to host 192.168.231.10 eq 445, so the required file-share flow is dropped inbound on Gi0/0.",
-        "osi_layer": "L4",
-        "category": "ACL",
-        "expected_rule_ids": [
-          "R012"
-        ],
-        "expected_root_cause_keywords": [
-          "acl deny",
-          "tcp 445",
-          "BLOCK-SMB",
-          "gi0/0 inbound"
-        ]
-      },
-      "model_confidence": null,
-      "effective_confidence": null,
-      "evidence_integrity": null,
-      "reconciliation": null,
-      "evaluation_result": "UNABLE_TO_EVALUATE",
-      "reason_for_review": [
-        "The Gemini call failed permanently (ProviderError), so the case has no diagnosis at all."
-      ],
-      "status": "pending"
-    },
-    {
-      "case_id": "CASE-026",
-      "diagnosis_id": null,
-      "priority": 1,
-      "priority_label": "evaluation_result = INCORRECT",
-      "ai_diagnosis": {
-        "root_cause": null,
-        "osi_layer": null,
-        "category": null,
-        "next_command": null,
-        "fix_steps": [],
-        "insufficient_evidence": false
-      },
-      "expected_diagnosis": {
-        "expected_fault": "GUEST-FILTER is applied inbound on Gi0/2 (the DMZ), an interface guest traffic never enters, so nothing evaluates the deny and guest-to-internal traffic is forwarded.",
-        "osi_layer": "L4",
-        "category": "ACL",
-        "expected_rule_ids": [
-          "R012"
-        ],
-        "expected_root_cause_keywords": [
-          "acl wrong interface",
-          "GUEST-FILTER",
-          "gi0/2",
-          "guest to internal"
-        ]
-      },
-      "model_confidence": null,
-      "effective_confidence": null,
-      "evidence_integrity": null,
-      "reconciliation": null,
-      "evaluation_result": "UNABLE_TO_EVALUATE",
-      "reason_for_review": [
-        "The Gemini call failed permanently (ProviderError), so the case has no diagnosis at all."
-      ],
-      "status": "pending"
-    },
-    {
-      "case_id": "CASE-027",
-      "diagnosis_id": null,
-      "priority": 1,
-      "priority_label": "evaluation_result = INCORRECT",
-      "ai_diagnosis": {
-        "root_cause": null,
-        "osi_layer": null,
-        "category": null,
-        "next_command": null,
-        "fix_steps": [],
-        "insufficient_evidence": false
-      },
-      "expected_diagnosis": {
-        "expected_fault": "PERMIT-DB entry 10 permits host 192.168.235.20 instead of the actual workstation 192.168.235.21, so the intended flow falls through to the explicit deny at entry 20.",
-        "osi_layer": "L4",
-        "category": "ACL",
-        "expected_rule_ids": [
-          "R012"
-        ],
-        "expected_root_cause_keywords": [
-          "wrong source address",
-          "192.168.235.20",
-          "192.168.235.21",
-          "PERMIT-DB"
-        ]
-      },
-      "model_confidence": null,
-      "effective_confidence": null,
-      "evidence_integrity": null,
-      "reconciliation": null,
-      "evaluation_result": "UNABLE_TO_EVALUATE",
-      "reason_for_review": [
-        "The Gemini call failed permanently (ProviderError), so the case has no diagnosis at all."
-      ],
-      "status": "pending"
-    },
-    {
-      "case_id": "CASE-001",
-      "diagnosis_id": "DIAG-543bafdabb20",
-      "priority": 2,
-      "priority_label": "evaluation_result = PARTIAL",
-      "ai_diagnosis": {
-        "root_cause": "VLAN 30 is missing from SW1's VLAN database, causing access port Gi0/2 to show as inactive, while interface Vlan30 is also configured with shutdown. Consequently, SW1 cannot bring up the Layer 3 interface for 192.168.30.0/24, leaving SW1 without a connected route to VLAN 30 and PC-HR unable to reach SRV-FILES.",
-        "osi_layer": "L2",
-        "category": "VLAN",
-        "next_command": "show ip route 192.168.30.0",
-        "fix_steps": [
-          "1. [SW1] configure terminal; vlan 30; name SERVERS; exit — Create VLAN 30 in the VLAN database so port Gi0/2 becomes active and the SVI can bind to a valid VLAN. (risk=low)",
-          "2. [SW1] interface Vlan30; no shutdown; end — Enable the Vlan30 SVI so SW1 populates 192.168.30.0/24 in its routing table and acts as the default gateway for VLAN 30. (risk=low)"
-        ],
-        "insufficient_evidence": false
-      },
-      "expected_diagnosis": {
-        "expected_fault": "VLAN 30 was never created in the VLAN database on SW1. The Vlan30 SVI exists and holds 192.168.30.1/24 but is administratively shut down, so the SERVERS subnet has no active gateway, SW1 has no connected route to 192.168.30.0/24, and access port Gi0/2 shows Access Mode VLAN 30 as Inactive.",
-        "osi_layer": "L2",
-        "category": "VLAN",
-        "expected_rule_ids": [
-          "R004",
-          "R005",
-          "R006"
-        ],
-        "expected_root_cause_keywords": [
-          "VLAN 30",
-          "vlan database",
-          "not created",
-          "SVI",
-          "shutdown",
-          "inter-VLAN"
-        ]
-      },
-      "model_confidence": "high",
-      "effective_confidence": "high",
-      "evidence_integrity": "passed",
-      "reconciliation": "agree",
       "evaluation_result": "PARTIAL",
       "reason_for_review": [
         "Classified PARTIAL against the stored ground truth.",
-        "HIGH effective confidence on a PARTIAL diagnosis — a confidently wrong answer is the most dangerous failure mode."
+        "Evidence integrity FAILED — no citation could be located in the supplied output.",
+        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
       ],
       "status": "pending"
     },
     {
       "case_id": "CASE-003",
-      "diagnosis_id": "DIAG-8484809a5bc3",
+      "diagnosis_id": "DIAG-824fc99e8a05",
       "priority": 2,
       "priority_label": "evaluation_result = PARTIAL",
       "ai_diagnosis": {
-        "root_cause": "SW1 interface GigabitEthernet0/2 is incorrectly assigned to VLAN 10 (SALES) instead of VLAN 20 (HR). Because PC-HR is configured with IP address 192.168.20.30, its ARP requests for the default gateway 192.168.20.1 are broadcast onto VLAN 10, where no Layer 3 interface responds.",
+        "root_cause": "Interface GigabitEthernet0/2 on SW1 is incorrectly configured for access VLAN 10 (SALES) instead of VLAN 20 (HR). As a result, PC-HR is placed in the wrong broadcast domain and cannot reach its default gateway 192.168.20.1.",
         "osi_layer": "L2",
         "category": "VLAN",
-        "next_command": "SW1: show vlan brief",
+        "next_command": "SW1: show mac address-table interface GigabitEthernet0/2",
         "fix_steps": [
-          "1. [SW1] configure terminal; interface GigabitEthernet0/2; switchport access vlan 20; end — Reassign interface GigabitEthernet0/2 to VLAN 20 so PC-HR's traffic enters the HR broadcast domain and reaches its default gateway. (risk=low)"
+          "1. [SW1] configure terminal; interface GigabitEthernet0/2; switchport access vlan 20; end — Reassign interface GigabitEthernet0/2 to access VLAN 20 so PC-HR resides in the HR broadcast domain. (risk=low)"
         ],
         "insufficient_evidence": false
       },
@@ -450,16 +184,16 @@
     },
     {
       "case_id": "CASE-004",
-      "diagnosis_id": "DIAG-d68d5d558fb0",
+      "diagnosis_id": "DIAG-fa3fcfd24ed6",
       "priority": 2,
       "priority_label": "evaluation_result = PARTIAL",
       "ai_diagnosis": {
-        "root_cause": "SW2 interface GigabitEthernet0/24 allowed VLAN list is configured to allow only VLAN 10, pruning VLAN 20 traffic across the uplink. As a result, hosts in VLAN 20 attached to SW2 cannot reach their gateway on SW1.",
+        "root_cause": "VLAN 20 is missing from the allowed VLAN list on SW2's trunk interface GigabitEthernet0/24. While SW1 allows VLANs 10 and 20, SW2 only allows VLAN 10, causing VLAN 20 traffic to be pruned across the uplink so VLAN 20 clients behind SW2 cannot reach their default gateway on SW1.",
         "osi_layer": "L2",
         "category": "VLAN",
-        "next_command": "show interfaces trunk",
+        "next_command": "SW2: show running-config interface GigabitEthernet0/24",
         "fix_steps": [
-          "1. [SW2] configure terminal; interface GigabitEthernet0/24; switchport trunk allowed vlan add 20; end — Add VLAN 20 to the allowed list on SW2 interface Gi0/24 so VLAN 20 traffic can pass across the trunk to SW1. (risk=low)"
+          "1. [SW2] configure terminal; interface GigabitEthernet0/24; switchport trunk allowed vlan add 20; end — Add VLAN 20 to the allowed list on SW2's trunk interface Gi0/24 so VLAN 20 frames can pass to SW1. (risk=low)"
         ],
         "insufficient_evidence": false
       },
@@ -491,59 +225,17 @@
       "status": "pending"
     },
     {
-      "case_id": "CASE-005",
-      "diagnosis_id": "DIAG-5b506d4b02ab",
-      "priority": 2,
-      "priority_label": "evaluation_result = PARTIAL",
-      "ai_diagnosis": {
-        "root_cause": "There is a native VLAN mismatch on the Gi0/24 trunk link between SW1 and SW2. SW1 is configured with native VLAN 1 while SW2 is configured with native VLAN 99, causing CDP mismatch warnings and untagged traffic leakage.",
-        "osi_layer": "L2",
-        "category": "VLAN",
-        "next_command": "show interfaces trunk",
-        "fix_steps": [
-          "1. [SW2] configure terminal; interface GigabitEthernet0/24; switchport trunk native vlan 1; end — Reconfigure native VLAN on SW2 Gi0/24 to VLAN 1 so that both sides of the trunk match. (risk=low)"
-        ],
-        "insufficient_evidence": false
-      },
-      "expected_diagnosis": {
-        "expected_fault": "SW2's trunk uses switchport trunk native vlan 99 while SW1 and the documented design use native VLAN 1, so untagged traffic is placed in a different VLAN at each end of the same trunk.",
-        "osi_layer": "L2",
-        "category": "VLAN",
-        "expected_rule_ids": [
-          "R008"
-        ],
-        "expected_root_cause_keywords": [
-          "native vlan mismatch",
-          "native vlan 99",
-          "trunk",
-          "gi0/24",
-          "untagged"
-        ]
-      },
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "agree",
-      "evaluation_result": "PARTIAL",
-      "reason_for_review": [
-        "Classified PARTIAL against the stored ground truth.",
-        "Evidence integrity FAILED — no citation could be located in the supplied output.",
-        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
-      ],
-      "status": "pending"
-    },
-    {
       "case_id": "CASE-006",
-      "diagnosis_id": "DIAG-bd9f36b05f1a",
+      "diagnosis_id": "DIAG-3d6d750b2edd",
       "priority": 2,
       "priority_label": "evaluation_result = PARTIAL",
       "ai_diagnosis": {
-        "root_cause": "PC-ACC is configured with an incorrect default gateway IP address (192.168.50.254). The actual Layer 3 interface on R1 for the 192.168.50.0/24 subnet is GigabitEthernet0/0 with IP address 192.168.50.1. Because no device responds to ARP for 192.168.50.254, PC-ACC cannot forward off-subnet traffic to the server LAN (192.168.60.0/24).",
+        "root_cause": "PC-ACC is configured with an incorrect default gateway IP address of 192.168.50.254 instead of 192.168.50.1. Because no device on the local subnet owns 192.168.50.254, ARP resolution fails and PC-ACC cannot forward packets to remote subnets such as the server LAN.",
         "osi_layer": "L3",
         "category": "GATEWAY",
         "next_command": "PC-ACC: ping 192.168.50.1",
         "fix_steps": [
-          "1. [PC-ACC] netsh interface ipv4 set address name=\"FastEthernet0\" static 192.168.50.20 255.255.255.0 192.168.50.1 — Update PC-ACC's default gateway IP address to point to R1's GigabitEthernet0/0 interface (192.168.50.1). (risk=low)"
+          "1. [PC-ACC] ipconfig 192.168.50.20 255.255.255.0 192.168.50.1 — Update the default gateway on PC-ACC to point to R1's GigabitEthernet0/0 interface IP (192.168.50.1). (risk=low)"
         ],
         "insufficient_evidence": false
       },
@@ -575,16 +267,16 @@
     },
     {
       "case_id": "CASE-007",
-      "diagnosis_id": "DIAG-90d374dfb029",
+      "diagnosis_id": "DIAG-c4aaa2d17b23",
       "priority": 2,
       "priority_label": "evaluation_result = PARTIAL",
       "ai_diagnosis": {
-        "root_cause": "PC-BRANCH is configured with an invalid default gateway IP address (192.168.7.1) due to a typographical error. Because 192.168.7.1 is outside PC-BRANCH's local subnet (192.168.70.0/24), the host operating system cannot determine a local route or ARP for the gateway, resulting in immediate local reachability failure.",
+        "root_cause": "PC-BRANCH has an incorrectly configured default gateway (192.168.7.1 instead of 192.168.70.1). Because 192.168.7.1 is outside PC-BRANCH's local subnet (192.168.70.0/24), the host cannot determine a route to reach its gateway and drops outgoing traffic locally.",
         "osi_layer": "L3",
         "category": "GATEWAY",
         "next_command": "ping 192.168.70.1",
         "fix_steps": [
-          "1. [PC-BRANCH] netsh interface ipv4 set address name=\"FastEthernet0\" static 192.168.70.20 255.255.255.0 192.168.70.1 — Update PC-BRANCH's default gateway address to match R2's GigabitEthernet0/0 interface IP (192.168.70.1). (risk=low)"
+          "1. [PC-BRANCH] ipconfig /setgateway 192.168.70.1 — Update the default gateway setting on PC-BRANCH to point to R2's GigabitEthernet0/0 address (192.168.70.1). (risk=low)"
         ],
         "insufficient_evidence": false
       },
@@ -615,100 +307,18 @@
       "status": "pending"
     },
     {
-      "case_id": "CASE-008",
-      "diagnosis_id": "DIAG-fb5f01a167bb",
-      "priority": 2,
-      "priority_label": "evaluation_result = PARTIAL",
-      "ai_diagnosis": {
-        "root_cause": "PC-LAB is missing a valid default gateway setting (currently configured as 0.0.0.0), so its operating system cannot install a default route to forward off-subnet traffic destined for 192.168.40.10 to SW-CORE (192.168.41.1).",
-        "osi_layer": "L3",
-        "category": "GATEWAY",
-        "next_command": "PC-LAB: ping 192.168.41.1",
-        "fix_steps": [
-          "1. [PC-LAB] netsh interface ip set address name=\"FastEthernet0\" static 192.168.41.25 255.255.255.0 192.168.41.1 — Configure the default gateway on PC-LAB to 192.168.41.1 so off-subnet traffic is directed to SW-CORE. (risk=low)"
-        ],
-        "insufficient_evidence": false
-      },
-      "expected_diagnosis": {
-        "expected_fault": "PC-LAB has no default gateway configured at all, so it can only reach its own subnet even though the Vlan41 SVI is up and routing works.",
-        "osi_layer": "L3",
-        "category": "GATEWAY",
-        "expected_rule_ids": [
-          "R003"
-        ],
-        "expected_root_cause_keywords": [
-          "missing default gateway",
-          "PC-LAB",
-          "static configuration",
-          "192.168.41.1"
-        ]
-      },
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "agree",
-      "evaluation_result": "PARTIAL",
-      "reason_for_review": [
-        "Classified PARTIAL against the stored ground truth.",
-        "Evidence integrity FAILED — no citation could be located in the supplied output.",
-        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
-      ],
-      "status": "pending"
-    },
-    {
-      "case_id": "CASE-009",
-      "diagnosis_id": "DIAG-8dae4485d535",
-      "priority": 2,
-      "priority_label": "evaluation_result = PARTIAL",
-      "ai_diagnosis": {
-        "root_cause": "PC-FIN has its default gateway set to 192.168.80.50 (the print server SRV-PRINT) instead of the actual router gateway address 192.168.80.1 on R3. Because SRV-PRINT is an end host that does not perform Layer 3 routing, any off-subnet packets destined for 192.168.81.0/24 are sent to SRV-PRINT and dropped.",
-        "osi_layer": "L3",
-        "category": "GATEWAY",
-        "next_command": "PC-FIN: ping 192.168.80.1",
-        "fix_steps": [
-          "1. [PC-FIN] ipconfig /setclassid \"Default Gateway\" 192.168.80.1 — Reconfigure PC-FIN's default gateway address to point to R3's GigabitEthernet0/0 interface (192.168.80.1). (risk=low)"
-        ],
-        "insufficient_evidence": false
-      },
-      "expected_diagnosis": {
-        "expected_fault": "PC-FIN's default gateway 192.168.80.50 is the print server, not a routed interface, so the gateway answers ICMP but forwards nothing off-subnet.",
-        "osi_layer": "L3",
-        "category": "GATEWAY",
-        "expected_rule_ids": [
-          "R003"
-        ],
-        "expected_root_cause_keywords": [
-          "gateway wrong device",
-          "192.168.80.50",
-          "print server",
-          "not a router"
-        ]
-      },
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "agree",
-      "evaluation_result": "PARTIAL",
-      "reason_for_review": [
-        "Classified PARTIAL against the stored ground truth.",
-        "Evidence integrity FAILED — no citation could be located in the supplied output.",
-        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
-      ],
-      "status": "pending"
-    },
-    {
       "case_id": "CASE-011",
-      "diagnosis_id": "DIAG-07658369c37f",
+      "diagnosis_id": "DIAG-6472950196cb",
       "priority": 2,
       "priority_label": "evaluation_result = PARTIAL",
       "ai_diagnosis": {
-        "root_cause": "The DHCP pool STAFF-POOL on SW-DHCP is misconfigured with network 192.168.10.0 255.255.255.0 instead of 192.168.100.0 255.255.255.0. Because SW-DHCP's Vlan100 interface is in 192.168.100.0/24, SW-DHCP cannot find a matching DHCP pool for incoming DHCP requests from VLAN 100 clients, causing PC-NEW's request to time out.",
+        "root_cause": "The DHCP pool STAFF-POOL on SW-DHCP is misconfigured with network 192.168.10.0/24 instead of 192.168.100.0/24. Because SW-DHCP's Vlan100 SVI is on 192.168.100.1, incoming DHCP requests on Vlan100 do not match any configured DHCP pool, causing PC-NEW's DHCP requests to time out.",
         "osi_layer": "L3",
         "category": "DHCP",
         "next_command": "show ip dhcp pool STAFF-POOL",
         "fix_steps": [
-          "1. [SW-DHCP] configure terminal; ip dhcp pool STAFF-POOL; network 192.168.100.0 255.255.255.0; end — Correct the pool network statement so SW-DHCP matches requests coming from Vlan100 (192.168.100.0/24). (risk=low)",
-          "2. [PC-NEW] ipconfig /renew — Request a new DHCP lease from the corrected pool on SW-DHCP. (risk=low)"
+          "1. [SW-DHCP] configure terminal; ip dhcp pool STAFF-POOL; no network 192.168.10.0 255.255.255.0; network 192.168.100.0 255.255.255.0; end — Correct the network statement in STAFF-POOL so SW-DHCP can service DHCP requests coming from VLAN 100. (risk=low)",
+          "2. [PC-NEW] ipconfig /renew — Trigger a new DHCP request on PC-NEW to obtain an IP address from the corrected pool. (risk=low)"
         ],
         "insufficient_evidence": false
       },
@@ -740,17 +350,18 @@
     },
     {
       "case_id": "CASE-012",
-      "diagnosis_id": "DIAG-59a278ce7cc0",
+      "diagnosis_id": "DIAG-b568e1736041",
       "priority": 2,
       "priority_label": "evaluation_result = PARTIAL",
       "ai_diagnosis": {
-        "root_cause": "DHCP pool LAB-POOL on R-CAMPUS is configured with default-router 192.168.111.1, which is outside the local 192.168.110.0/24 subnet. As a result, PC-LEASED receives an unreachable default gateway address, preventing it from sending traffic off-subnet.",
+        "root_cause": "The DHCP pool LAB-POOL on R-CAMPUS is configured with an incorrect default-router address of 192.168.111.1, which belongs to an unreachable subnet. R-CAMPUS's active interface for the lab LAN (GigabitEthernet0/0) is 192.168.110.1. Consequently, PC-LEASED receives an invalid default gateway and cannot route traffic off-subnet.",
         "osi_layer": "L3",
         "category": "DHCP",
         "next_command": "show ip dhcp pool LAB-POOL",
         "fix_steps": [
-          "1. [R-CAMPUS] configure terminal; ip dhcp pool LAB-POOL; default-router 192.168.110.1; end — Update the default-router setting in DHCP pool LAB-POOL to point to R-CAMPUS's actual interface IP (192.168.110.1). (risk=low)",
-          "2. [PC-LEASED] ipconfig /release; ipconfig /renew — Release and renew the DHCP lease on PC-LEASED to obtain the updated default gateway setting. (risk=low)"
+          "1. [R-CAMPUS] configure terminal; ip dhcp pool LAB-POOL; default-router 192.168.110.1; end — Correct the default-router setting in DHCP pool LAB-POOL to match R-CAMPUS's Gi0/0 interface IP address (192.168.110.1). (risk=low)",
+          "2. [R-CAMPUS] clear ip dhcp binding * — Clear existing active leases so DHCP clients rebind and pick up the updated default gateway address. (risk=medium)",
+          "3. [PC-LEASED] ipconfig /release; ipconfig /renew — Force PC-LEASED to release its current lease and request new parameters from the updated DHCP pool. (risk=low)"
         ],
         "insufficient_evidence": false
       },
@@ -770,31 +381,30 @@
         ]
       },
       "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
+      "effective_confidence": "high",
+      "evidence_integrity": "passed",
       "reconciliation": "agree",
       "evaluation_result": "PARTIAL",
       "reason_for_review": [
         "Classified PARTIAL against the stored ground truth.",
-        "Evidence integrity FAILED — no citation could be located in the supplied output.",
-        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
+        "HIGH effective confidence on a PARTIAL diagnosis — a confidently wrong answer is the most dangerous failure mode."
       ],
       "status": "pending"
     },
     {
       "case_id": "CASE-013",
-      "diagnosis_id": "DIAG-3d0bc6cecf87",
+      "diagnosis_id": "DIAG-7f7cb336d574",
       "priority": 2,
       "priority_label": "evaluation_result = PARTIAL",
       "ai_diagnosis": {
-        "root_cause": "The DHCP configuration on SW-BR has a typographical error in the excluded-address setting ('192.168.12.1' instead of excluding 192.168.120.50). Because 192.168.120.50 was not excluded from pool BRANCH-POOL, SW-BR assigned it to PC-TEMP via DHCP, causing an IP address conflict with statically configured server SRV-APP.",
+        "root_cause": "The DHCP server on SW-BR has a typo in its excluded-address configuration (ip dhcp excluded-address 192.168.12.1 instead of 192.168.120.50), leaving 192.168.120.50 available in the pool. Consequently, DHCP assigns 192.168.120.50 to PC-TEMP, causing an IP address conflict with statically configured SRV-APP.",
         "osi_layer": "L3",
         "category": "DHCP",
-        "next_command": "show ip dhcp binding",
+        "next_command": "SW-BR: show ip dhcp binding",
         "fix_steps": [
-          "1. [SW-BR] configure terminal; no ip dhcp excluded-address 192.168.12.1; ip dhcp excluded-address 192.168.120.50; end — Remove the invalid excluded-address typo and exclude SRV-APP's static address 192.168.120.50 from being handed out by DHCP. (risk=low)",
-          "2. [SW-BR] clear ip dhcp conflict *; clear ip dhcp binding * — Clear existing invalid DHCP bindings and conflict records so the pool state is reset. (risk=medium)",
-          "3. [PC-TEMP] ipconfig /release; ipconfig /renew — Force PC-TEMP to release 192.168.120.50 and acquire a new, unconflicted IP address from the pool. (risk=low)"
+          "1. [SW-BR] configure terminal; no ip dhcp excluded-address 192.168.12.1; ip dhcp excluded-address 192.168.120.50; end — Remove the invalid excluded address entry and exclude SRV-APP's static IP address (192.168.120.50) from the DHCP pool. (risk=low)",
+          "2. [SW-BR] clear ip dhcp conflict 192.168.120.50; clear ip dhcp binding * — Clear the conflict table entry and reset DHCP bindings so dynamic clients release invalid leases. (risk=medium)",
+          "3. [PC-TEMP] ipconfig /release; ipconfig /renew — Force PC-TEMP to release 192.168.120.50 and acquire a non-conflicting IP address from the updated pool. (risk=low)"
         ],
         "insufficient_evidence": false
       },
@@ -826,75 +436,32 @@
       "status": "pending"
     },
     {
-      "case_id": "CASE-014",
-      "diagnosis_id": "DIAG-4107d732a035",
+      "case_id": "CASE-016",
+      "diagnosis_id": "DIAG-84f557442032",
       "priority": 2,
       "priority_label": "evaluation_result = PARTIAL",
       "ai_diagnosis": {
-        "root_cause": "SW-CAMP interface Vlan130 is missing an 'ip helper-address 192.168.131.10' configuration after being reloaded from an older configuration file. Because the DHCP server resides on a different subnet (VLAN 131), DHCP broadcast requests from clients in VLAN 130 are not forwarded across the Layer 3 boundary.",
-        "osi_layer": "L3",
-        "category": "DHCP",
-        "next_command": "show running-config interface Vlan130",
+        "root_cause": "PC-USER is configured to use 192.168.150.1 (the SW-OFFICE default gateway SVI) as its DNS server rather than SRV-DNS at 192.168.150.50. Because SW-OFFICE does not run a DNS server, all DNS resolution requests sent to 192.168.150.1 time out.",
+        "osi_layer": "L7",
+        "category": "DNS",
+        "next_command": "nslookup srv-dns.lab 192.168.150.50",
         "fix_steps": [
-          "1. [SW-CAMP] configure terminal; interface Vlan130; ip helper-address 192.168.131.10; end — Configure DHCP relay on the classroom SVI so broadcast DHCP requests are unicast to the central DHCP server at 192.168.131.10. (risk=low)",
-          "2. [PC-CLASS] ipconfig /renew — Force the client to re-issue DHCP broadcast requests and acquire a valid IP address. (risk=low)"
+          "1. [PC-USER] netsh interface ipv4 set dns name=\"FastEthernet0\" static 192.168.150.50 — Update PC-USER's DNS configuration to point directly to SRV-DNS (192.168.150.50). (risk=low)"
         ],
         "insufficient_evidence": false
       },
       "expected_diagnosis": {
-        "expected_fault": "The classroom segment has no DHCP pool on any device and the Vlan130 SVI has no ip helper-address, so DHCP discovers from PC-CLASS are never answered or relayed.",
-        "osi_layer": "L3",
-        "category": "DHCP",
+        "expected_fault": "PC-USER's resolver is set to the gateway address 192.168.150.1 instead of the DNS server 192.168.150.50, so lookups are sent to a device that answers no queries.",
+        "osi_layer": "L7",
+        "category": "DNS",
         "expected_rule_ids": [
-          "R010"
+          "R011"
         ],
         "expected_root_cause_keywords": [
-          "ip helper-address",
-          "dhcp relay missing",
-          "vlan 130",
-          "no lease"
-        ]
-      },
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "agree",
-      "evaluation_result": "PARTIAL",
-      "reason_for_review": [
-        "Classified PARTIAL against the stored ground truth.",
-        "Evidence integrity FAILED — no citation could be located in the supplied output.",
-        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
-      ],
-      "status": "pending"
-    },
-    {
-      "case_id": "CASE-015",
-      "diagnosis_id": "DIAG-808ce4cd8d6e",
-      "priority": 2,
-      "priority_label": "evaluation_result = PARTIAL",
-      "ai_diagnosis": {
-        "root_cause": "The DHCP pool TILL-POOL on SW-RETAIL is configured with an incorrect DNS server IP address (192.168.140.253), which does not exist in the topology. PC-TILL receives this invalid DNS server setting via DHCP, causing all domain name resolution attempts to time out despite having full Layer 3 connectivity to the actual DNS server (SRV-DNS at 192.168.141.53).",
-        "osi_layer": "L3",
-        "category": "DHCP",
-        "next_command": "SW-RETAIL: show running-config | section dhcp",
-        "fix_steps": [
-          "1. [SW-RETAIL] configure terminal; ip dhcp pool TILL-POOL; dns-server 192.168.141.53; end — Update the DHCP pool configuration to hand out the correct IP address of SRV-DNS (192.168.141.53). (risk=low)",
-          "2. [PC-TILL] ipconfig /release; ipconfig /renew — Renew the DHCP lease on PC-TILL to acquire the updated DNS server option. (risk=low)"
-        ],
-        "insufficient_evidence": false
-      },
-      "expected_diagnosis": {
-        "expected_fault": "TILL-POOL hands out dns-server 192.168.140.253, an address no device or host in the topology owns, so clients receive a resolver that does not exist.",
-        "osi_layer": "L3",
-        "category": "DHCP",
-        "expected_rule_ids": [
-          "R010"
-        ],
-        "expected_root_cause_keywords": [
-          "dhcp dns-server",
-          "192.168.140.253",
-          "wrong dns handed out",
-          "TILL-POOL"
+          "wrong dns server",
+          "192.168.150.1",
+          "192.168.150.50",
+          "nslookup timeout"
         ]
       },
       "model_confidence": "high",
@@ -911,16 +478,16 @@
     },
     {
       "case_id": "CASE-017",
-      "diagnosis_id": "DIAG-8661f52c9e9f",
+      "diagnosis_id": "DIAG-4ea1fe9fcaad",
       "priority": 2,
       "priority_label": "evaluation_result = PARTIAL",
       "ai_diagnosis": {
-        "root_cause": "PC-USER is configured with an invalid DNS server address of 10.10.10.53, which is unreachable and does not exist in the network. The actual DNS resolver is SRV-DNS at 192.168.160.50, which is active and reachable via ICMP from PC-USER.",
+        "root_cause": "PC-USER is configured with an invalid DNS server IP address (10.10.10.53), which does not exist in the network. The actual DNS resolver on the plant network is SRV-DNS at 192.168.160.50, which is online and reachable.",
         "osi_layer": "L7",
         "category": "DNS",
-        "next_command": "nslookup host 192.168.160.50",
+        "next_command": "nslookup srv-dns 192.168.160.50",
         "fix_steps": [
-          "1. [PC-USER] netsh interface ip set dns name=\"Ethernet\" static 192.168.160.50 — Reconfigure PC-USER's static DNS server setting to point to the actual internal DNS server SRV-DNS at 192.168.160.50. (risk=low)"
+          "1. [PC-USER] netsh interface ip set dns name=\"FastEthernet0\" static 192.168.160.50 — Reconfigure PC-USER's DNS server setting to point to the correct IP address of SRV-DNS (192.168.160.50). (risk=low)"
         ],
         "insufficient_evidence": false
       },
@@ -951,32 +518,32 @@
       "status": "pending"
     },
     {
-      "case_id": "CASE-018",
-      "diagnosis_id": "DIAG-962cf2cf4b81",
+      "case_id": "CASE-020",
+      "diagnosis_id": "DIAG-4e4a0c9aa70d",
       "priority": 2,
       "priority_label": "evaluation_result = PARTIAL",
       "ai_diagnosis": {
-        "root_cause": "PC-USER lacks a DNS server configuration, preventing it from resolving domain names to IP addresses. Network connectivity at Layer 3 to the DNS server at 192.168.170.50 is fully operational.",
-        "osi_layer": "L7",
-        "category": "DNS",
-        "next_command": "PC-USER: nslookup srv-dns.lab 192.168.170.50",
+        "root_cause": "R-BR is missing a static route for the HQ LAN network (192.168.191.0/24) via next-hop 10.0.0.2. When PC-BR sends packets to SRV-HQ (192.168.191.10), R-BR drops them and returns ICMP Destination Host Unreachable. HQ can reach Branch because R-HQ already has a static route to 192.168.190.0/24.",
+        "osi_layer": "L3",
+        "category": "ROUTING",
+        "next_command": "show ip route 192.168.191.0",
         "fix_steps": [
-          "1. [PC-USER] netsh interface ipv4 set dnsservers name=\"FastEthernet0\" static 192.168.170.50 primary — Configure 192.168.170.50 as the primary DNS server on PC-USER's interface. (risk=low)"
+          "1. [R-BR] configure terminal; ip route 192.168.191.0 255.255.255.0 10.0.0.2; end — Add a static route on R-BR directing traffic for the HQ LAN (192.168.191.0/24) to R-HQ's WAN interface (10.0.0.2). (risk=low)"
         ],
         "insufficient_evidence": false
       },
       "expected_diagnosis": {
-        "expected_fault": "PC-USER has an empty DNS server list, so it has no resolver to send queries to even though the DNS server is up and reachable.",
-        "osi_layer": "L7",
-        "category": "DNS",
+        "expected_fault": "R-BR has no route for 192.168.191.0/24 at all — its routing table contains only connected networks — so HQ-bound traffic is dropped at the branch router.",
+        "osi_layer": "L3",
+        "category": "ROUTING",
         "expected_rule_ids": [
-          "R011"
+          "R006"
         ],
         "expected_root_cause_keywords": [
-          "no dns configured",
-          "empty resolver",
-          "PC-USER",
-          "192.168.170.50"
+          "missing route",
+          "192.168.191.0/24",
+          "R-BR",
+          "static routing"
         ]
       },
       "model_confidence": "high",
@@ -992,32 +559,32 @@
       "status": "pending"
     },
     {
-      "case_id": "CASE-022",
-      "diagnosis_id": "DIAG-97b69fdc3f21",
+      "case_id": "CASE-021",
+      "diagnosis_id": "DIAG-5bc487b45df3",
       "priority": 2,
       "priority_label": "evaluation_result = PARTIAL",
       "ai_diagnosis": {
-        "root_cause": "IP routing is disabled globally on multilayer switch SW-L3. Because IP routing is not enabled, SW-L3 acts purely as a Layer 2 switch and will not forward packets between Vlan210 (192.168.210.0/24) and Vlan211 (192.168.211.0/24), despite both SVIs being configured and operationally up.",
+        "root_cause": "The static route on R-BR was misconfigured with a typographical error pointing to 192.168.20.0/24 instead of the actual HQ LAN subnet 192.168.201.0/24. As a result, R-BR has no valid route to reach 192.168.201.10 and drops traffic from PC-BR with an ICMP Destination Host Unreachable error.",
         "osi_layer": "L3",
         "category": "ROUTING",
-        "next_command": "SW-L3: show ip route",
+        "next_command": "R-BR: show ip route",
         "fix_steps": [
-          "1. [SW-L3] configure terminal; ip routing; end — Enables global IP packet routing on SW-L3 to allow forwarding between active SVIs. (risk=low)"
+          "1. [R-BR] configure terminal; no ip route 192.168.20.0 255.255.255.0 10.0.0.2; ip route 192.168.201.0 255.255.255.0 10.0.0.2; end — Remove the errant static route for 192.168.20.0/24 and install the correct static route for the 192.168.201.0/24 subnet via next hop 10.0.0.2. (risk=low)"
         ],
         "insufficient_evidence": false
       },
       "expected_diagnosis": {
-        "expected_fault": "ip routing is not enabled on SW-L3 after the reload, so the switch never forwards between its own SVIs even though both interfaces are up and addressed.",
+        "expected_fault": "R-BR's static route was typed as 192.168.20.0/24 via 10.0.0.2 instead of 192.168.201.0/24, so the destination the branch actually needs is still uncovered while the table looks populated.",
         "osi_layer": "L3",
         "category": "ROUTING",
         "expected_rule_ids": [
           "R006"
         ],
         "expected_root_cause_keywords": [
-          "ip routing disabled",
-          "inter-vlan routing",
-          "SW-L3",
-          "svi up"
+          "wrong network in static route",
+          "192.168.20.0",
+          "192.168.201.0/24",
+          "R-BR"
         ]
       },
       "model_confidence": "high",
@@ -1033,32 +600,238 @@
       "status": "pending"
     },
     {
-      "case_id": "CASE-023",
-      "diagnosis_id": "DIAG-fe9f21a2938c",
+      "case_id": "CASE-025",
+      "diagnosis_id": "DIAG-b000e4b3c744",
       "priority": 2,
       "priority_label": "evaluation_result = PARTIAL",
       "ai_diagnosis": {
-        "root_cause": "R-EDGE is missing a default route or static route pointing to ISP router R-ISP (203.0.113.1). Because R-EDGE lacks a route for destination network 198.51.100.0/24, it drops outgoing traffic from PC-OFFICE destined for SRV-PORTAL (198.51.100.10).",
-        "osi_layer": "L3",
-        "category": "ROUTING",
-        "next_command": "R-EDGE: show ip route",
+        "root_cause": "An extended access list named BLOCK-SMB applied inbound on R-FW GigabitEthernet0/0 explicitly denies TCP port 445 (SMB) traffic from the 192.168.230.0/24 subnet to host 192.168.231.10. Active match counters confirm that connection attempts from PC-USER to the file server are being dropped by rule sequence 10.",
+        "osi_layer": "L4",
+        "category": "ACL",
+        "next_command": "show ip access-lists BLOCK-SMB",
         "fix_steps": [
-          "1. [R-EDGE] configure terminal; ip route 0.0.0.0 0.0.0.0 203.0.113.1; end — Configure a default static route on R-EDGE pointing to next-hop IP 203.0.113.1 (R-ISP) to route all off-subnet traffic to the ISP. (risk=low)"
+          "1. [R-FW] configure terminal; ip access-list extended BLOCK-SMB; no 10; end — Remove the deny rule for TCP port 445 from access-list BLOCK-SMB so SMB traffic matches sequence 20 (permit ip any any). (risk=low)"
         ],
         "insufficient_evidence": false
       },
       "expected_diagnosis": {
-        "expected_fault": "R-EDGE has no default route: the entry ip route 0.0.0.0 0.0.0.0 203.0.113.1 is missing, so any destination outside the two connected networks is dropped.",
-        "osi_layer": "L3",
-        "category": "ROUTING",
+        "expected_fault": "BLOCK-SMB entry 10 explicitly denies tcp from 192.168.230.0/24 to host 192.168.231.10 eq 445, so the required file-share flow is dropped inbound on Gi0/0.",
+        "osi_layer": "L4",
+        "category": "ACL",
         "expected_rule_ids": [
-          "R006"
+          "R012"
         ],
         "expected_root_cause_keywords": [
-          "missing default route",
-          "gateway of last resort",
-          "203.0.113.1",
-          "R-EDGE"
+          "acl deny",
+          "tcp 445",
+          "BLOCK-SMB",
+          "gi0/0 inbound"
+        ]
+      },
+      "model_confidence": "high",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
+      "reconciliation": "agree",
+      "evaluation_result": "PARTIAL",
+      "reason_for_review": [
+        "Classified PARTIAL against the stored ground truth.",
+        "Evidence integrity FAILED — no citation could be located in the supplied output.",
+        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
+      ],
+      "status": "pending"
+    },
+    {
+      "case_id": "CASE-027",
+      "diagnosis_id": "DIAG-e6c50f677869",
+      "priority": 2,
+      "priority_label": "evaluation_result = PARTIAL",
+      "ai_diagnosis": {
+        "root_cause": "Access list PERMIT-DB on R-APP contains an incorrect source IP address in entry 10 (192.168.235.20 instead of 192.168.235.21). Because PC-HR's IP address is 192.168.235.21, its traffic misses entry 10 and is dropped by entry 20 (deny ip any any).",
+        "osi_layer": "L4",
+        "category": "ACL",
+        "next_command": "show ip access-lists PERMIT-DB",
+        "fix_steps": [
+          "1. [R-APP] configure terminal; ip access-list extended PERMIT-DB; no 10; 10 permit tcp host 192.168.235.21 host 192.168.236.10 eq 1433; end — Modify entry 10 in PERMIT-DB to permit host 192.168.235.21 (PC-HR) instead of 192.168.235.20. (risk=low)"
+        ],
+        "insufficient_evidence": false
+      },
+      "expected_diagnosis": {
+        "expected_fault": "PERMIT-DB entry 10 permits host 192.168.235.20 instead of the actual workstation 192.168.235.21, so the intended flow falls through to the explicit deny at entry 20.",
+        "osi_layer": "L4",
+        "category": "ACL",
+        "expected_rule_ids": [
+          "R012"
+        ],
+        "expected_root_cause_keywords": [
+          "wrong source address",
+          "192.168.235.20",
+          "192.168.235.21",
+          "PERMIT-DB"
+        ]
+      },
+      "model_confidence": "high",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
+      "reconciliation": "agree",
+      "evaluation_result": "PARTIAL",
+      "reason_for_review": [
+        "Classified PARTIAL against the stored ground truth.",
+        "Evidence integrity FAILED — no citation could be located in the supplied output.",
+        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
+      ],
+      "status": "pending"
+    },
+    {
+      "case_id": "CASE-029",
+      "diagnosis_id": "DIAG-4c086af3c500",
+      "priority": 2,
+      "priority_label": "evaluation_result = PARTIAL",
+      "ai_diagnosis": {
+        "root_cause": "GigabitEthernet0/1 on R-NAT is missing the 'ip nat outside' configuration. Because no outside NAT interface is defined, NAT translation is never triggered for traffic outbound to the ISP, causing packets to leave with unroutable private IP addresses.",
+        "osi_layer": "L3",
+        "category": "NAT",
+        "next_command": "show running-config interface GigabitEthernet0/1",
+        "fix_steps": [
+          "1. [R-NAT] configure terminal; interface GigabitEthernet0/1; ip nat outside; end — Configure 'ip nat outside' on GigabitEthernet0/1 so that traffic passing outbound to the ISP is translated. (risk=low)"
+        ],
+        "insufficient_evidence": false
+      },
+      "expected_diagnosis": {
+        "expected_fault": "Gi0/1 is missing ip nat outside, so R-NAT has an inside interface but no outside interface and performs no translation at all.",
+        "osi_layer": "L3",
+        "category": "NAT",
+        "expected_rule_ids": [
+          "R013"
+        ],
+        "expected_root_cause_keywords": [
+          "ip nat outside missing",
+          "gi0/1",
+          "overload",
+          "no translations"
+        ]
+      },
+      "model_confidence": "high",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
+      "reconciliation": "agree",
+      "evaluation_result": "PARTIAL",
+      "reason_for_review": [
+        "Classified PARTIAL against the stored ground truth.",
+        "Evidence integrity FAILED — no citation could be located in the supplied output.",
+        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
+      ],
+      "status": "pending"
+    },
+    {
+      "case_id": "CASE-030",
+      "diagnosis_id": "DIAG-17cea74d2b27",
+      "priority": 2,
+      "priority_label": "evaluation_result = PARTIAL",
+      "ai_diagnosis": {
+        "root_cause": "The NAT overload rule on R-NAT references access list NAT-INSIDE, but the configured access list is named NAT_INSIDE (with an underscore). Because the referenced ACL does not exist, traffic from the inside network is never matched for translation.",
+        "osi_layer": "L3",
+        "category": "NAT",
+        "next_command": "show ip nat translations",
+        "fix_steps": [
+          "1. [R-NAT] configure terminal; no ip nat inside source list NAT-INSIDE interface GigabitEthernet0/1 overload; ip nat inside source list NAT_INSIDE interface GigabitEthernet0/1 overload; end — Update the IP NAT inside source statement to reference the existing access list NAT_INSIDE. (risk=low)"
+        ],
+        "insufficient_evidence": false
+      },
+      "expected_diagnosis": {
+        "expected_fault": "The NAT rule matches access list NAT-INSIDE, but the router only has NAT_INSIDE (underscore), so the rule selects no traffic and nothing is translated.",
+        "osi_layer": "L3",
+        "category": "NAT",
+        "expected_rule_ids": [
+          "R013"
+        ],
+        "expected_root_cause_keywords": [
+          "nat acl missing",
+          "NAT-INSIDE",
+          "NAT_INSIDE",
+          "name mismatch"
+        ]
+      },
+      "model_confidence": "high",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
+      "reconciliation": "agree",
+      "evaluation_result": "PARTIAL",
+      "reason_for_review": [
+        "Classified PARTIAL against the stored ground truth.",
+        "Evidence integrity FAILED — no citation could be located in the supplied output.",
+        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
+      ],
+      "status": "pending"
+    },
+    {
+      "case_id": "CASE-037",
+      "diagnosis_id": "DIAG-d19a89575423",
+      "priority": 2,
+      "priority_label": "evaluation_result = PARTIAL",
+      "ai_diagnosis": {
+        "root_cause": "The WAN interface GigabitEthernet0/1 on router R-WAN is administratively down (shutdown). This breaks physical and data-link layer connectivity across the 172.16.0.0/30 WAN link to R-DC, preventing traffic from reaching 172.16.20.0/24.",
+        "osi_layer": "L1",
+        "category": "INTERFACE_CONFIG",
+        "next_command": "ping 172.16.0.2",
+        "fix_steps": [
+          "1. [R-WAN] configure terminal; interface GigabitEthernet0/1; no shutdown; end — Re-enable the WAN interface GigabitEthernet0/1 to restore connectivity to R-DC. (risk=low)"
+        ],
+        "insufficient_evidence": false
+      },
+      "expected_diagnosis": {
+        "expected_fault": "R-WAN Gi0/1 is administratively down (shutdown was left in place after maintenance), so the only path toward 172.16.20.0/24 is unusable.",
+        "osi_layer": "L1",
+        "category": "INTERFACE_CONFIG",
+        "expected_rule_ids": [
+          "R004"
+        ],
+        "expected_root_cause_keywords": [
+          "shutdown interface",
+          "gi0/1",
+          "administratively down",
+          "wan link"
+        ]
+      },
+      "model_confidence": "high",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
+      "reconciliation": "agree",
+      "evaluation_result": "PARTIAL",
+      "reason_for_review": [
+        "Classified PARTIAL against the stored ground truth.",
+        "Evidence integrity FAILED — no citation could be located in the supplied output.",
+        "Suspiciously unsupported: the model asserted a root cause with no verified citation."
+      ],
+      "status": "pending"
+    },
+    {
+      "case_id": "CASE-038",
+      "diagnosis_id": "DIAG-38f90eed1711",
+      "priority": 2,
+      "priority_label": "evaluation_result = PARTIAL",
+      "ai_diagnosis": {
+        "root_cause": "Interface Vlan85 on SW-FLOOR is operationally down (line protocol down), which prevents the 172.16.85.0/24 subnet route from being installed in the routing table and renders gateway 172.16.85.1 unreachable for PC-FLOOR.",
+        "osi_layer": "L3",
+        "category": "INTERFACE_CONFIG",
+        "next_command": "show interfaces Vlan85",
+        "fix_steps": [
+          "1. [SW-FLOOR] configure terminal; interface Vlan85; no shutdown; end — Re-enable/bounce the SVI to bring its line protocol up and reinstate the connected route for VLAN 85. (risk=low)"
+        ],
+        "insufficient_evidence": false
+      },
+      "expected_diagnosis": {
+        "expected_fault": "The Vlan85 SVI is administratively up but its line protocol is down, so VLAN 85 has no working gateway even though the configuration looks correct.",
+        "osi_layer": "L1",
+        "category": "INTERFACE_CONFIG",
+        "expected_rule_ids": [
+          "R004",
+          "R015"
+        ],
+        "expected_root_cause_keywords": [
+          "line protocol down",
+          "vlan85 svi",
+          "svi down",
+          "172.16.85.1"
         ]
       },
       "model_confidence": "high",

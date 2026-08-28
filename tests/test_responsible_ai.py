@@ -31,20 +31,31 @@ def paths(tmp_path):
     return tmp_path / "responsible_ai_log.json", tmp_path / "RESPONSIBLE_AI.md"
 
 
-def _diagnose(case):
-    """One persisted mock diagnosis plus its evaluation record."""
+def _diagnose(case, provider="gemini"):
+    """One persisted diagnosis plus its evaluation record.
+
+    The pipeline is driven by the mock provider — no test in this file may call a model — but the
+    stored record is relabelled with a real provider name by default, because the builder now
+    refuses to count a correction whose diagnosis came from a fixture. These tests are about the
+    builder's *mechanics*, so they need a record that is eligible; the exclusion itself is
+    asserted separately by the tests at the end of this module, which keep ``provider="mock"``.
+    """
     from backend.app.ai.mock_provider import MockProvider
 
     result = diagnose_case(case, provider=MockProvider())
     record = diagnosis_repo.save(result)
+    if provider != record.provider:
+        record = diagnosis_repo.collection.update(
+            record.model_copy(update={"provider": provider, "model": f"{provider}-3.6-flash"})
+        )
     return record, record_from_result(case, result, diagnosis_id=record.diagnosis_id)
 
 
-def _seed(cases, count, verdict="edited"):
+def _seed(cases, count, verdict="edited", provider="gemini"):
     """`count` genuine corrections, each on its own case. Returns evaluation records."""
     evaluations = {}
     for case in cases[:count]:
-        record, evaluation = _diagnose(case)
+        record, evaluation = _diagnose(case, provider=provider)
         payload = {"verdict": verdict, "reviewer": "test-reviewer"}
         if verdict == "edited":
             payload["corrected_root_cause"] = f"the real fault in {case.case_id}"
@@ -171,3 +182,56 @@ def test_markdown_reports_the_real_counts(isolated_store, cases):
     for entry in entries:
         assert entry["case_id"] in markdown
     assert "EDITED" in markdown
+
+
+# --- a fixture is not evidence about a model -----------------------------------------------
+#
+# The point of these tests is the one thing the correction count must never be allowed to mean:
+# "a person disagreed with something the machine generated locally". Correcting a mock answer is
+# a real review — the gate applies to every diagnosis — but it teaches nothing about the model,
+# so it cannot move the counter toward the Responsible-AI requirement.
+
+
+def test_a_mock_diagnosis_is_not_a_genuine_model_output(isolated_store, cases):
+    record, _ = _diagnose(cases[0], provider="mock")
+    assert review_service.is_genuine_model_diagnosis(record) is False
+
+
+def test_a_gemini_diagnosis_is_a_genuine_model_output(isolated_store, cases):
+    record, _ = _diagnose(cases[0], provider="gemini")
+    assert review_service.is_genuine_model_diagnosis(record) is True
+
+
+def test_a_correction_with_no_stored_diagnosis_is_not_genuine():
+    assert review_service.is_genuine_model_diagnosis(None) is False
+
+
+def test_corrections_on_mock_diagnoses_do_not_count(isolated_store, cases):
+    _seed(cases, 5, provider="mock")
+
+    assert len(review_service.all_records()) == 5, "the reviews were genuinely recorded"
+    assert builder.corrections() == [], "but none of them counts as a correction"
+    assert len(builder.excluded_corrections()) == 5
+
+
+def test_the_builder_refuses_to_write_from_mock_corrections(isolated_store, cases, paths):
+    _seed(cases, 5, provider="mock")
+    log_path, doc_path = paths
+
+    assert builder.main(["--log-path", str(log_path), "--doc-path", str(doc_path)]) == 1
+    assert not log_path.exists(), "five mock corrections must not produce a log"
+
+
+def test_the_dashboard_and_the_builder_agree_on_the_count(isolated_store, cases):
+    """The failure this prevents: a 5/5 headline over a file the builder refused to write."""
+    from backend.app.services import dashboard
+
+    _seed(cases, 3, provider="mock")
+    _seed(cases[3:], 2, provider="gemini")
+
+    review = dashboard.human_review_summary()
+    assert review["total_reviews"] == 5
+    assert review["corrections"] == len(builder.corrections()) == 2
+    assert review["corrections_excluded_as_synthetic"] == 3
+    assert review["corrections_complete"] is False
+    assert review["incomplete_message"] == "Human review data incomplete"

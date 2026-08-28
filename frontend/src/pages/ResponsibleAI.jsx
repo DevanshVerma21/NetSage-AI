@@ -119,6 +119,10 @@ export default function ResponsibleAI() {
             tone={hr.total_reviews ? 'default' : 'muted'}
             hint={`${hr.corrections}/${hr.required_corrections} genuine corrections`}
           />
+          <Stat label="Accepted" value={hr.accepted} />
+          <Stat label="Edited" value={hr.edited} />
+          <Stat label="Rejected" value={hr.rejected} />
+          <Stat label="Genuine corrections" value={`${hr.corrections}/${hr.required_corrections}`} tone="warn" />
         </div>
         <SourceNote>{ai.accuracy_note}</SourceNote>
       </Panel>
@@ -235,7 +239,7 @@ export default function ResponsibleAI() {
       <Panel
         label="Human corrections"
         title="Responsible AI log"
-        subtitle={`${log.total_corrections} of ${log.required_corrections} genuine corrections recorded`}
+        subtitle={`${log.total_corrections}/${log.required_corrections} genuine corrections recorded`}
         tone={log.available ? 'default' : 'warn'}
       >
         {log.available ? (

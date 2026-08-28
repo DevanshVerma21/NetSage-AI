@@ -85,6 +85,12 @@ def get_responsible_ai() -> dict:
     return dashboard_service.responsible_ai()
 
 
+@api_router.get("/review-candidates", tags=["reviews"])
+def list_review_candidates() -> list[dict]:
+    """List genuine, persisted model diagnoses still awaiting human review."""
+    return review_service.review_candidates()
+
+
 @api_router.get("/evaluations", tags=["meta"])
 def list_evaluations(case_id: Optional[str] = Query(default=None)) -> list[dict]:
     """Stored AI evaluation records.

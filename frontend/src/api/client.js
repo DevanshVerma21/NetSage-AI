@@ -121,6 +121,7 @@ export const diagnose = (caseId, provider) =>
 export const getDiagnosis = (diagnosisId) =>
   request(`/diagnoses/${encodeURIComponent(diagnosisId)}`)
 export const getDiagnoses = (filters) => request(`/diagnoses${query(filters)}`)
+export const getReviewCandidates = () => request('/review-candidates')
 
 // --- the human gate -----------------------------------------------------------------------
 

@@ -22,7 +22,7 @@ def read_json(path: Path, default: Any = None) -> Any:
     """Read a JSON file, returning ``default`` when it does not exist or is empty."""
     if not path.exists():
         return default if default is not None else []
-    text = path.read_text(encoding="utf-8").strip()
+    text = path.read_text(encoding="utf-8-sig").strip()
     if not text:
         return default if default is not None else []
     return json.loads(text)

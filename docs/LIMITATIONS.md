@@ -27,14 +27,14 @@ paid tier, a different project, or the batch spread across several days.
 **Live Gemini evaluation is currently incomplete because the configured free-tier project/model
 quota is limited.**
 
-**Official Gemini evaluations: 0 of 40.** There is no AI accuracy figure for this system, and the
-absence is not a stand-in for a good one — it is unmeasured.
+**Official Gemini evaluation coverage: 22 of 40.** Full-dataset AI accuracy remains withheld
+because 18 cases are unevaluated.
 
 What exists on disk is retained rather than tidied away: 27 archived records from prompt v1.0.0,
-one `CASE-001` record produced under prompt v1.2.0 and marked `invalidated` / `requires_rerun`,
-and two failed quota-limited calls for `CASE-002` and `CASE-003`. None of them is official. No
-record has been fabricated, no invalidated or failed record has been promoted, and no accuracy has
-been extrapolated from partial coverage.
+22 official Gemini records under prompt v1.2.1, one retained failed quota call for `CASE-005`,
+and the superseded `CASE-001` prompt-v1.2.0 record in its invalidated archive. No record has been
+fabricated, no invalidated or failed record has been promoted, and no accuracy has been
+extrapolated from partial coverage.
 
 `accuracy` is returned as `null` and rendered as the literal word *withheld* until every case has
 an official record. The withholding is a function of coverage, not a permanent refusal.
@@ -154,20 +154,18 @@ not an access-control boundary. The API should not be exposed beyond localhost a
 
 ## 10. Human review is currently incomplete — *high*
 
-**0 recorded reviews.** The Responsible AI requirement is **5 genuine human corrections** — an
-`edited` or `rejected` verdict with a reason code — and there are none.
+**10 recorded reviews:** 5 accepted, 2 edited and 3 rejected. The Responsible AI requirement of
+**5 genuine human corrections** is met by the stored edited and rejected reviews.
 
-`data/responsible_ai_log.json` does not exist, so the correction log renders an empty state rather
-than illustrative examples, and the dashboard reports *"Human review data incomplete"*. The
-requirement is displayed as a target throughout and never as an achievement.
+`data/responsible_ai_log.json` is generated from the stored review records and contains five
+genuine corrections. The dashboard reports the actual verdict totals and correction count.
 
 No review, correction, reason code or lesson has been fabricated to fill the gap. Collecting them
 requires a person working through `python -m backend.scripts.review_candidates` in a terminal and
 genuinely disagreeing with diagnoses; it cannot be generated.
 
-**Consequence:** the human-in-the-loop mechanism is implemented, tested and server-enforced, but it
-has not been exercised at the required volume. The gate's *behaviour* is verified by tests and by
-the end-to-end script; its *use* is not yet evidenced by data.
+**Consequence:** the human-in-the-loop mechanism is implemented, tested, server-enforced, and
+exercised by the ten stored reviews. The API remains a local single-operator prototype.
 
 ---
 
@@ -182,8 +180,8 @@ above except §5 and §6:
 | Rules | 15 (6 mandatory + 9 optional) |
 | Golden expected-vs-fired | **PASS**, 0 mismatches |
 | Rule pass rate | **1.0** |
-| Offline test suite | **532 passed** (9 live tests deselected by default) |
-| Dashboard-vs-files integrity | **33/33 checks pass** |
+| Offline test suite | **540 passed** (9 live tests deselected by default) |
+| Dashboard-vs-files integrity | **PASS** |
 
 That result involves no model call and would be unchanged if no provider were ever configured. It
 is a statement about the rule engine, not about the AI.

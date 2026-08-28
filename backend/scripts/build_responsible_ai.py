@@ -36,15 +36,31 @@ from backend.app.store import write_json
 from backend.scripts.evaluate_all_cases import load_results
 
 REQUIRED_CORRECTIONS = 5
-CORRECTION_VERDICTS = ("edited", "rejected")
+CORRECTION_VERDICTS = review_service.CORRECTION_VERDICTS
 
 LOG_FILE = "responsible_ai_log.json"
 DOC_PATH = Path("docs/RESPONSIBLE_AI.md")
 
 
 def corrections() -> list[ReviewRecord]:
-    """Every genuine human correction on record, oldest first."""
-    return [r for r in review_service.all_records() if r.verdict in CORRECTION_VERDICTS]
+    """Every genuine human correction on record, oldest first.
+
+    Two filters, both deliberate, and both defined once in ``review_service`` so this script and
+    the dashboard cannot disagree about the count. The verdict must be a correction — an
+    ``accepted`` review is agreement, not a correction. And the diagnosis it corrects must be a
+    real model output, so a reviewer working through mock-provider answers cannot move the
+    counter.
+    """
+    return review_service.genuine_corrections()
+
+
+def excluded_corrections() -> list[ReviewRecord]:
+    """Corrections that are real reviews but not evidence about a model.
+
+    Reported rather than dropped in silence: a reviewer who spent the effort should be told why
+    their verdict did not count.
+    """
+    return review_service.synthetic_corrections()
 
 
 def _lesson(review: ReviewRecord, evaluation: Optional[EvaluationRecord]) -> str:
@@ -334,10 +350,20 @@ def main(argv: Optional[list[str]] = None) -> int:
     reviews = corrections()
     if len(reviews) < REQUIRED_CORRECTIONS:
         stats = review_service.agreement_stats()
+        excluded = excluded_corrections()
+        note = ""
+        if excluded:
+            note = (
+                f"\n{len(excluded)} correction(s) were excluded because the diagnosis they "
+                "correct was not produced by a real provider call "
+                f"({', '.join(sorted({r.diagnosis_id for r in excluded}))}). Correcting a "
+                "mock-provider answer is not evidence about model behaviour.\n"
+            )
         print(
             f"only {len(reviews)} genuine human correction(s) are on record "
             f"({stats['edited']} edited, {stats['rejected']} rejected out of {stats['total']} "
             f"review(s)); {REQUIRED_CORRECTIONS} are required.\n"
+            f"{note}"
             "\nNothing was written. The Responsible-AI log must come from reviews a person "
             "actually performed, so the remaining corrections cannot be generated here.\n"
             "Run 'python -m backend.scripts.review_candidates' in an interactive terminal to "

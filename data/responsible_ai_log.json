@@ -1,0 +1,251 @@
+{
+  "generated_at": "2026-08-28T12:24:55.776295+00:00",
+  "source": {
+    "reviews": "data/reviews.json",
+    "diagnoses": "data/diagnoses.json",
+    "evaluation": "data/evaluation_results.json"
+  },
+  "note": "Every human_decision, corrected_diagnosis, reason_code and human_notes value in this file was typed by a person through backend/scripts/review_candidates.py and stored by review_service. The 'lesson' field is derived mechanically from those records and the deterministic checks; it is not a reviewer's sentence.",
+  "review_totals": {
+    "total": 10,
+    "accepted": 5,
+    "edited": 2,
+    "rejected": 3,
+    "full_agreement": 7,
+    "root_cause_disagreement": 3,
+    "osi_layer_disagreement": 3,
+    "category_disagreement": 3
+  },
+  "required_corrections": 5,
+  "total_corrections": 5,
+  "corrections": [
+    {
+      "case_id": "CASE-005",
+      "diagnosis_id": "DIAG-5b506d4b02ab",
+      "review_id": "REV-4109e8f97d3c",
+      "ai_diagnosis": {
+        "root_cause": "There is a native VLAN mismatch on the Gi0/24 trunk link between SW1 and SW2. SW1 is configured with native VLAN 1 while SW2 is configured with native VLAN 99, causing CDP mismatch warnings and untagged traffic leakage.",
+        "osi_layer": "L2",
+        "category": "VLAN",
+        "next_command": "show interfaces trunk",
+        "fix_steps": [],
+        "provider": null,
+        "model": null
+      },
+      "model_confidence": null,
+      "effective_confidence": null,
+      "evidence": [],
+      "evidence_integrity": null,
+      "reconciliation": null,
+      "evaluation_result": null,
+      "human_decision": "rejected",
+      "reviewer": "human-reviewer",
+      "corrected_diagnosis": {
+        "root_cause": null,
+        "osi_layer": null,
+        "category": null,
+        "fix_steps": []
+      },
+      "reason_code": "other",
+      "human_notes": "The AI claims this configuration causes \"untagged traffic leakage.\" In reality, on enterprise switches (like Cisco running PVST+), Spanning Tree detects the native VLAN mismatch (PVID inconsistency) and places the port into a broken/blocking state (*PVID_Inc) for those specific VLANs. This actively prevents traffic leakage. The AI is misrepresenting how STP handles misconfigurations.",
+      "human_agreement": {
+        "root_cause": false,
+        "osi_layer": false,
+        "category": false
+      },
+      "lesson": "A reviewer rejected the AI's root cause outright, so the proposal was never eligible for a simulated fix. Reviewer reason code: other.",
+      "lesson_source": "derived from the stored review and the deterministic checks",
+      "timestamp": "2026-08-28T11:54:10+00:00",
+      "applied": false
+    },
+    {
+      "case_id": "CASE-019",
+      "diagnosis_id": "DIAG-a16ae59c00a0",
+      "review_id": "REV-504fefdd67dc",
+      "ai_diagnosis": {
+        "root_cause": "GigabitEthernet0/2 on SW-DEPOT, which connects to DNS server SRV-DNS (192.168.180.50), is administratively down. This breaks physical connectivity to the DNS server, causing all name resolution requests from clients in VLAN 180 to fail.",
+        "osi_layer": "L1",
+        "category": "INTERFACE_CONFIG",
+        "next_command": "show interfaces GigabitEthernet0/2",
+        "fix_steps": [],
+        "provider": null,
+        "model": null
+      },
+      "model_confidence": null,
+      "effective_confidence": null,
+      "evidence": [],
+      "evidence_integrity": null,
+      "reconciliation": null,
+      "evaluation_result": null,
+      "human_decision": "rejected",
+      "reviewer": "human-reviewer",
+      "corrected_diagnosis": {
+        "root_cause": null,
+        "osi_layer": null,
+        "category": null,
+        "fix_steps": []
+      },
+      "reason_code": "wrong_root_cause",
+      "human_notes": "The AI artificially limits the blast radius, stating it causes requests \"from clients in VLAN 180 to fail.\" If GigabitEthernet0/2 connects to the primary DNS server (SRV-DNS), shutting this port down breaks name resolution for the entire network, not just VLAN 180. The AI failed to identify the systemic impact.",
+      "human_agreement": {
+        "root_cause": false,
+        "osi_layer": false,
+        "category": false
+      },
+      "lesson": "A reviewer rejected the AI's root cause outright, so the proposal was never eligible for a simulated fix. Reviewer reason code: wrong_root_cause.",
+      "lesson_source": "derived from the stored review and the deterministic checks",
+      "timestamp": "2026-08-28T11:54:44+00:00",
+      "applied": false
+    },
+    {
+      "case_id": "CASE-012",
+      "diagnosis_id": "DIAG-59a278ce7cc0",
+      "review_id": "REV-21209c7eee48",
+      "ai_diagnosis": {
+        "root_cause": "DHCP pool LAB-POOL on R-CAMPUS is configured with default-router 192.168.111.1, which is outside the local 192.168.110.0/24 subnet. As a result, PC-LEASED receives an unreachable default gateway address, preventing it from sending traffic off-subnet.",
+        "osi_layer": "L3",
+        "category": "DHCP",
+        "next_command": "show ip dhcp pool LAB-POOL",
+        "fix_steps": [
+          "1. [R-CAMPUS] configure terminal; ip dhcp pool LAB-POOL; default-router 192.168.110.1; end — Correct the default-router setting in DHCP pool LAB-POOL to match R-CAMPUS's Gi0/0 interface IP address (192.168.110.1). (risk=low)",
+          "2. [R-CAMPUS] clear ip dhcp binding * — Clear existing active leases so DHCP clients rebind and pick up the updated default gateway address. (risk=medium)",
+          "3. [PC-LEASED] ipconfig /release; ipconfig /renew — Force PC-LEASED to release its current lease and request new parameters from the updated DHCP pool. (risk=low)"
+        ],
+        "provider": "gemini",
+        "model": "gemini-3.6-flash"
+      },
+      "model_confidence": "high",
+      "effective_confidence": "high",
+      "evidence": [
+        {
+          "source_command": "show running-config | section dhcp",
+          "excerpt": " default-router 192.168.111.1",
+          "why_it_matters": "Configures the DHCP pool to distribute 192.168.111.1 as the default gateway to DHCP clients.",
+          "verified": true,
+          "failure_reason": null,
+          "failure_detail": null
+        },
+        {
+          "source_command": "show ip interface brief",
+          "excerpt": "GigabitEthernet0/0         192.168.110.1   YES manual up                    up",
+          "why_it_matters": "Shows that the actual gateway address owned by R-CAMPUS on the lab LAN is 192.168.110.1, not 192.168.111.1.",
+          "verified": true,
+          "failure_reason": null,
+          "failure_detail": null
+        },
+        {
+          "source_command": "ipconfig /all",
+          "excerpt": "   Default Gateway.................: 192.168.111.1",
+          "why_it_matters": "Confirms PC-LEASED actively received and installed the invalid 192.168.111.1 gateway address from DHCP.",
+          "verified": true,
+          "failure_reason": null,
+          "failure_detail": null
+        }
+      ],
+      "evidence_integrity": "passed",
+      "reconciliation": "agree",
+      "evaluation_result": "PARTIAL",
+      "human_decision": "rejected",
+      "reviewer": "human-reviewer",
+      "corrected_diagnosis": {
+        "root_cause": null,
+        "osi_layer": null,
+        "category": null,
+        "fix_steps": []
+      },
+      "reason_code": "out_of_scope",
+      "human_notes": "The AI states the PC \"receives an unreachable default gateway address.\" This is technically inaccurate for how modern operating systems handle DHCP. If a DHCP server assigns a default gateway that falls outside the client's provided subnet mask, the OS (e.g., Windows/Linux) will outright reject the gateway and fail to install a 0.0.0.0/0 route at all, rather than installing it and finding it unreachable.",
+      "human_agreement": {
+        "root_cause": false,
+        "osi_layer": false,
+        "category": false
+      },
+      "lesson": "A reviewer rejected the AI's root cause outright, so the proposal was never eligible for a simulated fix. The model claimed HIGH confidence and no cap applied, so nothing automated flagged this one — the human review is the only thing that caught it. This is the failure mode the mandatory review gate exists for. Reviewer reason code: out_of_scope.",
+      "lesson_source": "derived from the stored review and the deterministic checks",
+      "timestamp": "2026-08-28T11:55:16+00:00",
+      "applied": false
+    },
+    {
+      "case_id": "CASE-010",
+      "diagnosis_id": "DIAG-8314f663dfa7",
+      "review_id": "REV-629c944257f7",
+      "ai_diagnosis": {
+        "root_cause": "PC-SUP is configured with a /25 subnet mask (255.255.255.128) instead of the correct /24 subnet mask (255.255.255.0). As a result, PC-SUP treats any host in VLAN 90 with an IP address above 192.168.90.127 (such as 192.168.90.200) as off-subnet and routes traffic for them through its default gateway rather than resolving them via ARP locally.",
+        "osi_layer": "L3",
+        "category": "INTERFACE_CONFIG",
+        "next_command": "show ip interface Vlan90",
+        "fix_steps": [],
+        "provider": null,
+        "model": null
+      },
+      "model_confidence": null,
+      "effective_confidence": null,
+      "evidence": [],
+      "evidence_integrity": null,
+      "reconciliation": null,
+      "evaluation_result": null,
+      "human_decision": "edited",
+      "reviewer": "human-reviewer",
+      "corrected_diagnosis": {
+        "root_cause": null,
+        "osi_layer": null,
+        "category": null,
+        "fix_steps": [
+          "Add that once the gateway receives the misdirected traffic, it will either drop it (due to firewall hairpinning rules) or send an ICMP Redirect back to the PC, causing asymmetric routing and breaking the TCP handshake."
+        ]
+      },
+      "reason_code": "fix_steps_incorrect",
+      "human_notes": "The deterministic rule engine already flagged this as PARTIAL. The AI correctly identifies that the PC treats hosts above .127 as off-subnet and forwards them to the gateway. However, it fails to explain why the connection ultimately fails.",
+      "human_agreement": {
+        "root_cause": true,
+        "osi_layer": true,
+        "category": true
+      },
+      "lesson": "A reviewer kept the diagnosis but corrected fix steps. Reviewer reason code: fix_steps_incorrect.",
+      "lesson_source": "derived from the stored review and the deterministic checks",
+      "timestamp": "2026-08-28T11:56:10+00:00",
+      "applied": true
+    },
+    {
+      "case_id": "CASE-014",
+      "diagnosis_id": "DIAG-4107d732a035",
+      "review_id": "REV-b86fee59f20f",
+      "ai_diagnosis": {
+        "root_cause": "SW-CAMP interface Vlan130 is missing an 'ip helper-address 192.168.131.10' configuration after being reloaded from an older configuration file. Because the DHCP server resides on a different subnet (VLAN 131), DHCP broadcast requests from clients in VLAN 130 are not forwarded across the Layer 3 boundary.",
+        "osi_layer": "L3",
+        "category": "DHCP",
+        "next_command": "show running-config interface Vlan130",
+        "fix_steps": [],
+        "provider": null,
+        "model": null
+      },
+      "model_confidence": null,
+      "effective_confidence": null,
+      "evidence": [],
+      "evidence_integrity": null,
+      "reconciliation": null,
+      "evaluation_result": null,
+      "human_decision": "edited",
+      "reviewer": "human-reviewer",
+      "corrected_diagnosis": {
+        "root_cause": null,
+        "osi_layer": null,
+        "category": null,
+        "fix_steps": [
+          "Expand the explanation to define the actual mechanism: clarify that without the ip helper-address, the router will simply drop the Layer 2 broadcast. The command is specifically required to intercept the UDP Port 67 broadcast and repackage it as a directed unicast packet toward the DHCP server."
+        ]
+      },
+      "reason_code": "wrong_osi_layer",
+      "human_notes": "he AI accurately identifies the missing command but provides a slightly vague explanation (\"requests... are not forwarded across the Layer 3 boundary\").",
+      "human_agreement": {
+        "root_cause": true,
+        "osi_layer": true,
+        "category": true
+      },
+      "lesson": "A reviewer kept the diagnosis but corrected fix steps. Reviewer reason code: wrong_osi_layer.",
+      "lesson_source": "derived from the stored review and the deterministic checks",
+      "timestamp": "2026-08-28T11:56:47+00:00",
+      "applied": false
+    }
+  ]
+}

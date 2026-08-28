@@ -1,124 +1,140 @@
 {
-  "generated_at": "2026-08-26T09:40:13+00:00",
+  "generated_at": "2026-08-28T12:42:42+00:00",
   "source": "data/evaluation_results.json",
   "methodology": "docs/evaluation_methodology.md",
   "metrics": {
     "totals": {
-      "total_cases": 27,
-      "successful": 21,
-      "failed": 6,
+      "total_cases": 23,
+      "successful": 22,
+      "failed": 1,
       "failed_case_ids": [
-        "CASE-020",
-        "CASE-021",
-        "CASE-024",
-        "CASE-025",
-        "CASE-026",
-        "CASE-027"
+        "CASE-005"
       ]
     },
     "results": {
-      "CORRECT": 1,
-      "PARTIAL": 17,
-      "INCORRECT": 3,
-      "UNABLE_TO_EVALUATE": 6
+      "CORRECT": 3,
+      "PARTIAL": 19,
+      "INCORRECT": 0,
+      "UNABLE_TO_EVALUATE": 1
     },
     "accuracy": {
-      "correct_rate": 0.037,
-      "correct_or_partial_rate": 0.6667
+      "correct_rate": 0.1304,
+      "correct_or_partial_rate": 0.9565
     },
     "agreement": {
-      "rule_agreement": 20,
-      "root_cause_agreement": 19,
-      "osi_agreement": 20,
-      "category_agreement": 18,
-      "scored_cases": 21,
-      "mean_keyword_hit_rate": 0.5794
+      "rule_agreement": 22,
+      "root_cause_agreement": 20,
+      "osi_agreement": 21,
+      "category_agreement": 22,
+      "scored_cases": 22,
+      "mean_keyword_hit_rate": 0.5735
     },
     "evidence": {
       "integrity": {
-        "passed": 2,
+        "passed": 4,
         "partial": 0,
-        "failed": 19
+        "failed": 18
       },
-      "total_citations": 68,
-      "verified_citations": 8,
-      "failed_citations": 60,
-      "verification_rate": 0.1176
+      "total_citations": 67,
+      "verified_citations": 12,
+      "failed_citations": 55,
+      "verification_rate": 0.1791
     },
     "confidence": {
       "model": {
         "low": 0,
         "medium": 0,
-        "high": 21
+        "high": 22
       },
       "effective": {
-        "low": 19,
+        "low": 18,
         "medium": 0,
-        "high": 2
+        "high": 4
       },
-      "capped": 19,
+      "capped": 18,
       "high_confidence_incorrect": 0,
       "high_confidence_partial": 1,
       "low_confidence_correct": 0,
       "medium_confidence_correct": 0,
-      "model_high_but_capped": 19
+      "model_high_but_capped": 18
     },
     "reconciliation": {
-      "agree": 20,
-      "partial": 1,
+      "agree": 22,
+      "partial": 0,
       "ai_only": 0,
       "rules_only": 0,
       "conflict": 0
     },
     "by_category": {
       "ACL": {
-        "CORRECT": 0,
-        "PARTIAL": 0,
+        "CORRECT": 1,
+        "PARTIAL": 2,
         "INCORRECT": 0,
-        "UNABLE_TO_EVALUATE": 3,
+        "UNABLE_TO_EVALUATE": 0,
         "total": 3
       },
       "DHCP": {
         "CORRECT": 0,
-        "PARTIAL": 5,
+        "PARTIAL": 3,
         "INCORRECT": 0,
         "UNABLE_TO_EVALUATE": 0,
-        "total": 5
+        "total": 3
       },
       "DNS": {
-        "CORRECT": 1,
+        "CORRECT": 0,
         "PARTIAL": 2,
-        "INCORRECT": 1,
+        "INCORRECT": 0,
         "UNABLE_TO_EVALUATE": 0,
-        "total": 4
+        "total": 2
       },
       "GATEWAY": {
         "CORRECT": 0,
-        "PARTIAL": 4,
-        "INCORRECT": 1,
+        "PARTIAL": 2,
+        "INCORRECT": 0,
         "UNABLE_TO_EVALUATE": 0,
-        "total": 5
+        "total": 2
+      },
+      "INTERFACE_CONFIG": {
+        "CORRECT": 0,
+        "PARTIAL": 2,
+        "INCORRECT": 0,
+        "UNABLE_TO_EVALUATE": 0,
+        "total": 2
+      },
+      "NAT": {
+        "CORRECT": 0,
+        "PARTIAL": 2,
+        "INCORRECT": 0,
+        "UNABLE_TO_EVALUATE": 0,
+        "total": 2
       },
       "ROUTING": {
         "CORRECT": 0,
         "PARTIAL": 2,
         "INCORRECT": 0,
-        "UNABLE_TO_EVALUATE": 3,
-        "total": 5
+        "UNABLE_TO_EVALUATE": 0,
+        "total": 2
       },
       "VLAN": {
         "CORRECT": 0,
         "PARTIAL": 4,
-        "INCORRECT": 1,
-        "UNABLE_TO_EVALUATE": 0,
+        "INCORRECT": 0,
+        "UNABLE_TO_EVALUATE": 1,
         "total": 5
+      },
+      "WIRELESS": {
+        "CORRECT": 2,
+        "PARTIAL": 0,
+        "INCORRECT": 0,
+        "UNABLE_TO_EVALUATE": 0,
+        "total": 2
       }
     },
     "latency_ms": {
-      "min": 17623,
-      "median": 23528,
-      "max": 84531,
-      "mean": 30897
+      "min": 21879,
+      "median": 36359,
+      "max": 174580,
+      "mean": 52814
     },
     "providers": [
       "gemini"
@@ -127,7 +143,7 @@
       "gemini-3.6-flash"
     ],
     "prompt_versions": [
-      "1.0.0"
+      "1.2.1"
     ]
   },
   "cases": [
@@ -136,11 +152,11 @@
       "category": "VLAN",
       "severity": "High",
       "expected_rules": "R004 R005 R006",
-      "ai_root_cause": "VLAN 30 is missing from SW1's VLAN database, causing access port Gi0/2 to show as inactive, while interface Vlan30 is also configured with shutdown. Consequently, SW1 cannot bring up the Layer 3 interface for 192.168.30.0/24, leaving SW1 without a connected route to VLAN 30 and PC-HR unable to reach SRV-FILES.",
+      "ai_root_cause": "VLAN 30 has not been created in the VLAN database on SW1. As a result, access port Gi0/2 (connected to SRV-FILES) is inactive, interface Vlan30 is administratively down, and no route to 192.168.30.0/24 exists in the routing table.",
       "evaluation_result": "PARTIAL",
       "model_confidence": "high",
-      "effective_confidence": "high",
-      "evidence_integrity": "passed",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
       "reconciliation": "agree"
     },
     {
@@ -148,8 +164,8 @@
       "category": "VLAN",
       "severity": "High",
       "expected_rules": "R003 R006 R015",
-      "ai_root_cause": "SW1 is missing the Switched Virtual Interface (SVI) for VLAN 30 (interface Vlan30). Consequently, 192.168.30.1 does not exist on SW1, preventing SRV-ERP from reaching its default gateway and preventing SW1 from routing traffic between VLAN 10 and VLAN 30.",
-      "evaluation_result": "INCORRECT",
+      "ai_root_cause": "Interface Vlan30 (SVI) has not been configured on SW1 with IP address 192.168.30.1/24. While Layer 2 VLAN 30 exists and Gi0/3 is assigned to it, the missing Layer 3 SVI prevents SW1 from serving as the default gateway for VLAN 30 and routing traffic between VLAN 30 and other subnets.",
+      "evaluation_result": "PARTIAL",
       "model_confidence": "high",
       "effective_confidence": "low",
       "evidence_integrity": "failed",
@@ -160,7 +176,7 @@
       "category": "VLAN",
       "severity": "High",
       "expected_rules": "R007",
-      "ai_root_cause": "SW1 interface GigabitEthernet0/2 is incorrectly assigned to VLAN 10 (SALES) instead of VLAN 20 (HR). Because PC-HR is configured with IP address 192.168.20.30, its ARP requests for the default gateway 192.168.20.1 are broadcast onto VLAN 10, where no Layer 3 interface responds.",
+      "ai_root_cause": "Interface GigabitEthernet0/2 on SW1 is incorrectly configured for access VLAN 10 (SALES) instead of VLAN 20 (HR). As a result, PC-HR is placed in the wrong broadcast domain and cannot reach its default gateway 192.168.20.1.",
       "evaluation_result": "PARTIAL",
       "model_confidence": "high",
       "effective_confidence": "low",
@@ -172,7 +188,7 @@
       "category": "VLAN",
       "severity": "High",
       "expected_rules": "R008",
-      "ai_root_cause": "SW2 interface GigabitEthernet0/24 allowed VLAN list is configured to allow only VLAN 10, pruning VLAN 20 traffic across the uplink. As a result, hosts in VLAN 20 attached to SW2 cannot reach their gateway on SW1.",
+      "ai_root_cause": "VLAN 20 is missing from the allowed VLAN list on SW2's trunk interface GigabitEthernet0/24. While SW1 allows VLANs 10 and 20, SW2 only allows VLAN 10, causing VLAN 20 traffic to be pruned across the uplink so VLAN 20 clients behind SW2 cannot reach their default gateway on SW1.",
       "evaluation_result": "PARTIAL",
       "model_confidence": "high",
       "effective_confidence": "low",
@@ -184,19 +200,19 @@
       "category": "VLAN",
       "severity": "Medium",
       "expected_rules": "R008",
-      "ai_root_cause": "There is a native VLAN mismatch on the Gi0/24 trunk link between SW1 and SW2. SW1 is configured with native VLAN 1 while SW2 is configured with native VLAN 99, causing CDP mismatch warnings and untagged traffic leakage.",
-      "evaluation_result": "PARTIAL",
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "agree"
+      "ai_root_cause": "",
+      "evaluation_result": "UNABLE_TO_EVALUATE",
+      "model_confidence": "",
+      "effective_confidence": "",
+      "evidence_integrity": "",
+      "reconciliation": ""
     },
     {
       "case_id": "CASE-006",
       "category": "GATEWAY",
       "severity": "High",
       "expected_rules": "R003",
-      "ai_root_cause": "PC-ACC is configured with an incorrect default gateway IP address (192.168.50.254). The actual Layer 3 interface on R1 for the 192.168.50.0/24 subnet is GigabitEthernet0/0 with IP address 192.168.50.1. Because no device responds to ARP for 192.168.50.254, PC-ACC cannot forward off-subnet traffic to the server LAN (192.168.60.0/24).",
+      "ai_root_cause": "PC-ACC is configured with an incorrect default gateway IP address of 192.168.50.254 instead of 192.168.50.1. Because no device on the local subnet owns 192.168.50.254, ARP resolution fails and PC-ACC cannot forward packets to remote subnets such as the server LAN.",
       "evaluation_result": "PARTIAL",
       "model_confidence": "high",
       "effective_confidence": "low",
@@ -208,55 +224,19 @@
       "category": "GATEWAY",
       "severity": "High",
       "expected_rules": "R003",
-      "ai_root_cause": "PC-BRANCH is configured with an invalid default gateway IP address (192.168.7.1) due to a typographical error. Because 192.168.7.1 is outside PC-BRANCH's local subnet (192.168.70.0/24), the host operating system cannot determine a local route or ARP for the gateway, resulting in immediate local reachability failure.",
+      "ai_root_cause": "PC-BRANCH has an incorrectly configured default gateway (192.168.7.1 instead of 192.168.70.1). Because 192.168.7.1 is outside PC-BRANCH's local subnet (192.168.70.0/24), the host cannot determine a route to reach its gateway and drops outgoing traffic locally.",
       "evaluation_result": "PARTIAL",
       "model_confidence": "high",
       "effective_confidence": "low",
       "evidence_integrity": "failed",
       "reconciliation": "agree"
-    },
-    {
-      "case_id": "CASE-008",
-      "category": "GATEWAY",
-      "severity": "High",
-      "expected_rules": "R003",
-      "ai_root_cause": "PC-LAB is missing a valid default gateway setting (currently configured as 0.0.0.0), so its operating system cannot install a default route to forward off-subnet traffic destined for 192.168.40.10 to SW-CORE (192.168.41.1).",
-      "evaluation_result": "PARTIAL",
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "agree"
-    },
-    {
-      "case_id": "CASE-009",
-      "category": "GATEWAY",
-      "severity": "High",
-      "expected_rules": "R003",
-      "ai_root_cause": "PC-FIN has its default gateway set to 192.168.80.50 (the print server SRV-PRINT) instead of the actual router gateway address 192.168.80.1 on R3. Because SRV-PRINT is an end host that does not perform Layer 3 routing, any off-subnet packets destined for 192.168.81.0/24 are sent to SRV-PRINT and dropped.",
-      "evaluation_result": "PARTIAL",
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "agree"
-    },
-    {
-      "case_id": "CASE-010",
-      "category": "GATEWAY",
-      "severity": "Medium",
-      "expected_rules": "R002",
-      "ai_root_cause": "PC-SUP is configured with a /25 subnet mask (255.255.255.128) instead of the correct /24 subnet mask (255.255.255.0). As a result, PC-SUP treats any host in VLAN 90 with an IP address above 192.168.90.127 (such as 192.168.90.200) as off-subnet and routes traffic for them through its default gateway rather than resolving them via ARP locally.",
-      "evaluation_result": "INCORRECT",
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "partial"
     },
     {
       "case_id": "CASE-011",
       "category": "DHCP",
       "severity": "High",
       "expected_rules": "R010",
-      "ai_root_cause": "The DHCP pool STAFF-POOL on SW-DHCP is misconfigured with network 192.168.10.0 255.255.255.0 instead of 192.168.100.0 255.255.255.0. Because SW-DHCP's Vlan100 interface is in 192.168.100.0/24, SW-DHCP cannot find a matching DHCP pool for incoming DHCP requests from VLAN 100 clients, causing PC-NEW's request to time out.",
+      "ai_root_cause": "The DHCP pool STAFF-POOL on SW-DHCP is misconfigured with network 192.168.10.0/24 instead of 192.168.100.0/24. Because SW-DHCP's Vlan100 SVI is on 192.168.100.1, incoming DHCP requests on Vlan100 do not match any configured DHCP pool, causing PC-NEW's DHCP requests to time out.",
       "evaluation_result": "PARTIAL",
       "model_confidence": "high",
       "effective_confidence": "low",
@@ -268,11 +248,11 @@
       "category": "DHCP",
       "severity": "High",
       "expected_rules": "R003 R010",
-      "ai_root_cause": "DHCP pool LAB-POOL on R-CAMPUS is configured with default-router 192.168.111.1, which is outside the local 192.168.110.0/24 subnet. As a result, PC-LEASED receives an unreachable default gateway address, preventing it from sending traffic off-subnet.",
+      "ai_root_cause": "The DHCP pool LAB-POOL on R-CAMPUS is configured with an incorrect default-router address of 192.168.111.1, which belongs to an unreachable subnet. R-CAMPUS's active interface for the lab LAN (GigabitEthernet0/0) is 192.168.110.1. Consequently, PC-LEASED receives an invalid default gateway and cannot route traffic off-subnet.",
       "evaluation_result": "PARTIAL",
       "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
+      "effective_confidence": "high",
+      "evidence_integrity": "passed",
       "reconciliation": "agree"
     },
     {
@@ -280,31 +260,7 @@
       "category": "DHCP",
       "severity": "Critical",
       "expected_rules": "R001 R010",
-      "ai_root_cause": "The DHCP configuration on SW-BR has a typographical error in the excluded-address setting ('192.168.12.1' instead of excluding 192.168.120.50). Because 192.168.120.50 was not excluded from pool BRANCH-POOL, SW-BR assigned it to PC-TEMP via DHCP, causing an IP address conflict with statically configured server SRV-APP.",
-      "evaluation_result": "PARTIAL",
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "agree"
-    },
-    {
-      "case_id": "CASE-014",
-      "category": "DHCP",
-      "severity": "High",
-      "expected_rules": "R010",
-      "ai_root_cause": "SW-CAMP interface Vlan130 is missing an 'ip helper-address 192.168.131.10' configuration after being reloaded from an older configuration file. Because the DHCP server resides on a different subnet (VLAN 131), DHCP broadcast requests from clients in VLAN 130 are not forwarded across the Layer 3 boundary.",
-      "evaluation_result": "PARTIAL",
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "agree"
-    },
-    {
-      "case_id": "CASE-015",
-      "category": "DHCP",
-      "severity": "High",
-      "expected_rules": "R010",
-      "ai_root_cause": "The DHCP pool TILL-POOL on SW-RETAIL is configured with an incorrect DNS server IP address (192.168.140.253), which does not exist in the topology. PC-TILL receives this invalid DNS server setting via DHCP, causing all domain name resolution attempts to time out despite having full Layer 3 connectivity to the actual DNS server (SRV-DNS at 192.168.141.53).",
+      "ai_root_cause": "The DHCP server on SW-BR has a typo in its excluded-address configuration (ip dhcp excluded-address 192.168.12.1 instead of 192.168.120.50), leaving 192.168.120.50 available in the pool. Consequently, DHCP assigns 192.168.120.50 to PC-TEMP, causing an IP address conflict with statically configured SRV-APP.",
       "evaluation_result": "PARTIAL",
       "model_confidence": "high",
       "effective_confidence": "low",
@@ -316,11 +272,11 @@
       "category": "DNS",
       "severity": "High",
       "expected_rules": "R011",
-      "ai_root_cause": "PC-USER is configured to use 192.168.150.1 (the default gateway SVI on SW-OFFICE) as its primary DNS server rather than the actual DNS server SRV-DNS at 192.168.150.50. Because SW-OFFICE does not host a DNS service, name queries sent to 192.168.150.1 time out despite full Layer 3 reachability to SRV-DNS.",
-      "evaluation_result": "CORRECT",
+      "ai_root_cause": "PC-USER is configured to use 192.168.150.1 (the SW-OFFICE default gateway SVI) as its DNS server rather than SRV-DNS at 192.168.150.50. Because SW-OFFICE does not run a DNS server, all DNS resolution requests sent to 192.168.150.1 time out.",
+      "evaluation_result": "PARTIAL",
       "model_confidence": "high",
-      "effective_confidence": "high",
-      "evidence_integrity": "passed",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
       "reconciliation": "agree"
     },
     {
@@ -328,32 +284,8 @@
       "category": "DNS",
       "severity": "High",
       "expected_rules": "R011",
-      "ai_root_cause": "PC-USER is configured with an invalid DNS server address of 10.10.10.53, which is unreachable and does not exist in the network. The actual DNS resolver is SRV-DNS at 192.168.160.50, which is active and reachable via ICMP from PC-USER.",
+      "ai_root_cause": "PC-USER is configured with an invalid DNS server IP address (10.10.10.53), which does not exist in the network. The actual DNS resolver on the plant network is SRV-DNS at 192.168.160.50, which is online and reachable.",
       "evaluation_result": "PARTIAL",
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "agree"
-    },
-    {
-      "case_id": "CASE-018",
-      "category": "DNS",
-      "severity": "High",
-      "expected_rules": "R011",
-      "ai_root_cause": "PC-USER lacks a DNS server configuration, preventing it from resolving domain names to IP addresses. Network connectivity at Layer 3 to the DNS server at 192.168.170.50 is fully operational.",
-      "evaluation_result": "PARTIAL",
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "agree"
-    },
-    {
-      "case_id": "CASE-019",
-      "category": "DNS",
-      "severity": "Critical",
-      "expected_rules": "R004 R011",
-      "ai_root_cause": "GigabitEthernet0/2 on SW-DEPOT, which connects to DNS server SRV-DNS (192.168.180.50), is administratively down. This breaks physical connectivity to the DNS server, causing all name resolution requests from clients in VLAN 180 to fail.",
-      "evaluation_result": "INCORRECT",
       "model_confidence": "high",
       "effective_confidence": "low",
       "evidence_integrity": "failed",
@@ -364,96 +296,132 @@
       "category": "ROUTING",
       "severity": "High",
       "expected_rules": "R006",
-      "ai_root_cause": "",
-      "evaluation_result": "UNABLE_TO_EVALUATE",
-      "model_confidence": "",
-      "effective_confidence": "",
-      "evidence_integrity": "",
-      "reconciliation": ""
+      "ai_root_cause": "R-BR is missing a static route for the HQ LAN network (192.168.191.0/24) via next-hop 10.0.0.2. When PC-BR sends packets to SRV-HQ (192.168.191.10), R-BR drops them and returns ICMP Destination Host Unreachable. HQ can reach Branch because R-HQ already has a static route to 192.168.190.0/24.",
+      "evaluation_result": "PARTIAL",
+      "model_confidence": "high",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
+      "reconciliation": "agree"
     },
     {
       "case_id": "CASE-021",
       "category": "ROUTING",
       "severity": "High",
       "expected_rules": "R006",
-      "ai_root_cause": "",
-      "evaluation_result": "UNABLE_TO_EVALUATE",
-      "model_confidence": "",
-      "effective_confidence": "",
-      "evidence_integrity": "",
-      "reconciliation": ""
-    },
-    {
-      "case_id": "CASE-022",
-      "category": "ROUTING",
-      "severity": "Critical",
-      "expected_rules": "R006",
-      "ai_root_cause": "IP routing is disabled globally on multilayer switch SW-L3. Because IP routing is not enabled, SW-L3 acts purely as a Layer 2 switch and will not forward packets between Vlan210 (192.168.210.0/24) and Vlan211 (192.168.211.0/24), despite both SVIs being configured and operationally up.",
+      "ai_root_cause": "The static route on R-BR was misconfigured with a typographical error pointing to 192.168.20.0/24 instead of the actual HQ LAN subnet 192.168.201.0/24. As a result, R-BR has no valid route to reach 192.168.201.10 and drops traffic from PC-BR with an ICMP Destination Host Unreachable error.",
       "evaluation_result": "PARTIAL",
       "model_confidence": "high",
       "effective_confidence": "low",
       "evidence_integrity": "failed",
       "reconciliation": "agree"
-    },
-    {
-      "case_id": "CASE-023",
-      "category": "ROUTING",
-      "severity": "Critical",
-      "expected_rules": "R006",
-      "ai_root_cause": "R-EDGE is missing a default route or static route pointing to ISP router R-ISP (203.0.113.1). Because R-EDGE lacks a route for destination network 198.51.100.0/24, it drops outgoing traffic from PC-OFFICE destined for SRV-PORTAL (198.51.100.10).",
-      "evaluation_result": "PARTIAL",
-      "model_confidence": "high",
-      "effective_confidence": "low",
-      "evidence_integrity": "failed",
-      "reconciliation": "agree"
-    },
-    {
-      "case_id": "CASE-024",
-      "category": "ROUTING",
-      "severity": "High",
-      "expected_rules": "R009",
-      "ai_root_cause": "",
-      "evaluation_result": "UNABLE_TO_EVALUATE",
-      "model_confidence": "",
-      "effective_confidence": "",
-      "evidence_integrity": "",
-      "reconciliation": ""
     },
     {
       "case_id": "CASE-025",
       "category": "ACL",
       "severity": "High",
       "expected_rules": "R012",
-      "ai_root_cause": "",
-      "evaluation_result": "UNABLE_TO_EVALUATE",
-      "model_confidence": "",
-      "effective_confidence": "",
-      "evidence_integrity": "",
-      "reconciliation": ""
+      "ai_root_cause": "An extended access list named BLOCK-SMB applied inbound on R-FW GigabitEthernet0/0 explicitly denies TCP port 445 (SMB) traffic from the 192.168.230.0/24 subnet to host 192.168.231.10. Active match counters confirm that connection attempts from PC-USER to the file server are being dropped by rule sequence 10.",
+      "evaluation_result": "PARTIAL",
+      "model_confidence": "high",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
+      "reconciliation": "agree"
     },
     {
       "case_id": "CASE-026",
       "category": "ACL",
       "severity": "Critical",
       "expected_rules": "R012",
-      "ai_root_cause": "",
-      "evaluation_result": "UNABLE_TO_EVALUATE",
-      "model_confidence": "",
-      "effective_confidence": "",
-      "evidence_integrity": "",
-      "reconciliation": ""
+      "ai_root_cause": "The access list GUEST-FILTER is misapplied inbound on interface GigabitEthernet0/2 (DMZ) instead of GigabitEthernet0/0 (Guest LAN). Because guest traffic entering Gi0/0 destined for the internal LAN on Gi0/1 never traverses Gi0/2, it bypasses the filter entirely.",
+      "evaluation_result": "CORRECT",
+      "model_confidence": "high",
+      "effective_confidence": "high",
+      "evidence_integrity": "passed",
+      "reconciliation": "agree"
     },
     {
       "case_id": "CASE-027",
       "category": "ACL",
       "severity": "High",
       "expected_rules": "R012",
-      "ai_root_cause": "",
-      "evaluation_result": "UNABLE_TO_EVALUATE",
-      "model_confidence": "",
-      "effective_confidence": "",
-      "evidence_integrity": "",
-      "reconciliation": ""
+      "ai_root_cause": "Access list PERMIT-DB on R-APP contains an incorrect source IP address in entry 10 (192.168.235.20 instead of 192.168.235.21). Because PC-HR's IP address is 192.168.235.21, its traffic misses entry 10 and is dropped by entry 20 (deny ip any any).",
+      "evaluation_result": "PARTIAL",
+      "model_confidence": "high",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
+      "reconciliation": "agree"
+    },
+    {
+      "case_id": "CASE-029",
+      "category": "NAT",
+      "severity": "High",
+      "expected_rules": "R013",
+      "ai_root_cause": "GigabitEthernet0/1 on R-NAT is missing the 'ip nat outside' configuration. Because no outside NAT interface is defined, NAT translation is never triggered for traffic outbound to the ISP, causing packets to leave with unroutable private IP addresses.",
+      "evaluation_result": "PARTIAL",
+      "model_confidence": "high",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
+      "reconciliation": "agree"
+    },
+    {
+      "case_id": "CASE-030",
+      "category": "NAT",
+      "severity": "High",
+      "expected_rules": "R013",
+      "ai_root_cause": "The NAT overload rule on R-NAT references access list NAT-INSIDE, but the configured access list is named NAT_INSIDE (with an underscore). Because the referenced ACL does not exist, traffic from the inside network is never matched for translation.",
+      "evaluation_result": "PARTIAL",
+      "model_confidence": "high",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
+      "reconciliation": "agree"
+    },
+    {
+      "case_id": "CASE-033",
+      "category": "WIRELESS",
+      "severity": "Critical",
+      "expected_rules": "R014",
+      "ai_root_cause": "The guest SSID GUEST-WIFI on AP-GUEST is configured without client isolation (Client-Isolation: none) and there is no access control list on SW-WIFI or AP-GUEST to block traffic between VLAN 50 (Guest) and VLAN 20 (Internal). Consequently, SW-WIFI routes guest traffic directly to the internal subnet.",
+      "evaluation_result": "CORRECT",
+      "model_confidence": "high",
+      "effective_confidence": "high",
+      "evidence_integrity": "passed",
+      "reconciliation": "agree"
+    },
+    {
+      "case_id": "CASE-034",
+      "category": "WIRELESS",
+      "severity": "High",
+      "expected_rules": "R014",
+      "ai_root_cause": "There is an SSID character mismatch between the client profile and the access point configuration. PC-SALES is configured to connect to 'CORP-WIFI' (with a hyphen), whereas AP-SALES is broadcasting 'CORP_WIFI' (with an underscore). Consequently, PC-SALES cannot locate the network and fails to associate.",
+      "evaluation_result": "CORRECT",
+      "model_confidence": "high",
+      "effective_confidence": "high",
+      "evidence_integrity": "passed",
+      "reconciliation": "agree"
+    },
+    {
+      "case_id": "CASE-037",
+      "category": "INTERFACE_CONFIG",
+      "severity": "Critical",
+      "expected_rules": "R004",
+      "ai_root_cause": "The WAN interface GigabitEthernet0/1 on router R-WAN is administratively down (shutdown). This breaks physical and data-link layer connectivity across the 172.16.0.0/30 WAN link to R-DC, preventing traffic from reaching 172.16.20.0/24.",
+      "evaluation_result": "PARTIAL",
+      "model_confidence": "high",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
+      "reconciliation": "agree"
+    },
+    {
+      "case_id": "CASE-038",
+      "category": "INTERFACE_CONFIG",
+      "severity": "High",
+      "expected_rules": "R004 R015",
+      "ai_root_cause": "Interface Vlan85 on SW-FLOOR is operationally down (line protocol down), which prevents the 172.16.85.0/24 subnet route from being installed in the routing table and renders gateway 172.16.85.1 unreachable for PC-FLOOR.",
+      "evaluation_result": "PARTIAL",
+      "model_confidence": "high",
+      "effective_confidence": "low",
+      "evidence_integrity": "failed",
+      "reconciliation": "agree"
     }
   ]
 }

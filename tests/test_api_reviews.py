@@ -10,7 +10,7 @@ required to be computed from these stored values rather than hard-coded anywhere
 
 from __future__ import annotations
 
-from backend.app.services import review_service
+from backend.app.services import diagnosis_repo, review_service
 
 
 def _review(client, diagnosis_id: str, **kwargs):
@@ -220,3 +220,38 @@ def test_agreement_stats_are_computed_from_the_stored_reviews(client):
     assert stats["accepted"] == 1 and stats["edited"] == 1 and stats["rejected"] == 1
     assert stats["full_agreement"] == 1
     assert stats["root_cause_disagreement"] == 2
+
+
+def test_review_candidates_include_only_stored_pending_genuine_diagnoses(client, diagnosed):
+    assert client.get("/api/review-candidates").json() == []
+
+    record = diagnosis_repo.require(diagnosed["diagnosis_id"])
+    diagnosis_repo.collection.update(record.model_copy(update={"provider": "gemini"}))
+
+    candidates = client.get("/api/review-candidates").json()
+    assert len(candidates) == 1
+    assert candidates[0]["diagnosis_id"] == diagnosed["diagnosis_id"]
+    assert candidates[0]["provider"] == "gemini"
+    assert candidates[0]["expected_fault"]
+    assert candidates[0]["symptom"]
+
+
+def test_genuine_correction_is_read_from_stored_review_records(client, diagnosed):
+    record = diagnosis_repo.require(diagnosed["diagnosis_id"])
+    diagnosis_repo.collection.update(record.model_copy(update={"provider": "gemini"}))
+    response = _review(
+        client,
+        diagnosed["diagnosis_id"],
+        verdict="edited",
+        reason_code="wrong_cause",
+        notes="The cited evidence supports a different conclusion.",
+        corrected_root_cause="The switch configuration does not match the intended VLAN.",
+    )
+    assert response.status_code == 201
+
+    payload = client.get("/api/responsible-ai").json()
+    assert payload["human_review"]["accepted"] == 0
+    assert payload["human_review"]["edited"] == 1
+    assert payload["human_review"]["corrections"] == 1
+    assert payload["log"]["source"] == "stored_review_records"
+    assert payload["log"]["corrections"][0]["case_id"] == diagnosed["case_id"]

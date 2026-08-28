@@ -91,7 +91,7 @@ AI result rather than a second opinion produced by the same machinery. Full deta
 | Storage | Atomic JSON files under `data/` | No database. The dataset is small, versioned, and reviewable in a diff |
 | AI provider | `google-genai`, model `gemini-3.6-flash` | Behind an `LLMProvider` protocol; a `mock` provider runs the whole app offline |
 | Frontend | React 19, react-router-dom 7, Vite 8, Tailwind CSS 4 (`@tailwindcss/vite`) | No UI component library |
-| Tests | pytest (532 offline tests), a Node end-to-end script | `pytest` never touches the network by default |
+| Tests | pytest (540 offline tests), a Node end-to-end script | `pytest` never touches the network by default |
 
 ---
 
@@ -176,13 +176,13 @@ absolute backend URL and there is no per-machine configuration. Start the backen
 `NETSAGE_API_TARGET` overrides the proxy target for the end-to-end script only; it is read at
 config time and never bundled.
 
-Routes: `/` (Dashboard) · `/cases` · `/cases/:caseId` (Triage Workbench) · `/review/:diagnosisId` ·
+Routes: `/` (Dashboard) · `/cases` · `/cases/:caseId` (Triage Workbench) · `/review` (genuine review queue) · `/review/:diagnosisId` ·
 `/fixes/:reviewId` · `/responsible-ai`.
 
 ## Testing
 
 ```bash
-python -m pytest -v          # 532 passed, 9 deselected
+python -m pytest -v          # 540 passed, 9 deselected
 cd frontend && npm run build # production build must succeed
 cd frontend && npm run e2e   # 89 checks, end to end over HTTP
 ```
@@ -427,38 +427,37 @@ Two properties are structural rather than editorial:
 straight from the files on disk and asserts field-by-field equality, so "the dashboard matches
 the backend data" is a checked claim. Currently 33/33 checks pass.
 
-Human review is presently at **0 recorded reviews**, so the Responsible AI page reports
-*"Human review data incomplete"* and the correction log renders an empty state. No example
-correction has been invented to fill it.
+Human review has **10 recorded reviews**: 5 accepted, 2 edited and 3 rejected. The stored
+Responsible AI log contains **5 genuine corrections**.
 
 ---
 
 ## Current Gemini evaluation limitation
 
-**Live Gemini evaluation is currently incomplete because the configured free-tier
-project/model quota is limited.**
+**Live Gemini evaluation is currently incomplete because only 20 of the 40 cases were
+authorized and evaluated in this run.**
 
-Official Gemini evaluations: **0 of 40.** That number is not a performance result and must not
-be read as one — there is no accuracy figure to report, in either direction.
+Official Gemini evaluation coverage: **22/40 cases.** All official records use Gemini
+`gemini-3.6-flash`, `diagnose_prompt` v1.2.1, and the registered prompt hash. Accuracy is
+withheld because 20 cases remain unevaluated.
 
 What is actually on disk:
 
 | Record set | State |
 |---|---|
 | `evaluation_results.prompt-1.0.0.archive.json` | 27 records from an earlier prompt version, **retained** for auditability |
-| `evaluation_results.json` — CASE-001 | completed under prompt **1.2.0**, marked `invalidated` and `requires_rerun`; **not official** |
-| `evaluation_results.json` — CASE-002, CASE-003 | **failed** provider calls (quota), retained rather than hidden |
-| Any record under prompt 1.2.1 | none yet |
+| `evaluation_results.prompt-1.2.0.invalidated.archive.json` | the superseded CASE-001 record, retained exactly for auditability |
+| `evaluation_results.json` | 22 official v1.2.1 Gemini results and one retained CASE-005 quota failure |
+| Official result outcomes | 3 CORRECT, 19 PARTIAL, 0 INCORRECT |
+| Evidence integrity | 4 passed, 18 failed |
 
-The blocker is `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, quota value **20 requests
-per day**, on metric `generativelanguage.googleapis.com/generate_content_free_tier_requests`
-for `gemini-3.6-flash`. It is scoped **per project, not per key**, so issuing a new API key
-does not reset it; the window is rolling 24 hours. A 40-case batch does not fit.
+The remaining 18 cases are unevaluated because Gemini quota was exhausted after the authorized
+continuation began. The quota failure remains retained in the active results file.
 
 What was deliberately *not* done: no result was fabricated or synthesised, no invalidated or
 failed record was promoted to official, no archived history was deleted, and no accuracy was
 computed from partial coverage. The dashboard reports status
-`NOT_STARTED — Gemini quota limited` and withholds accuracy, which is the truth.
+`PARTIAL — Gemini quota limited` and withholds accuracy, which is the truth.
 
 **The demo does not depend on Gemini.** With `LLM_PROVIDER=mock` the full path — case →
 rules → AI proposal → evidence verification → reconciliation → capping → human review →
@@ -538,7 +537,7 @@ prompts/                   diagnose_prompt · system_guardrails · fix_plan_prom
 docs/                      ARCHITECTURE · EVALUATION · LIMITATIONS · PLAN
 reports/                   rule-checker output · test run · pipeline demo
                            live Gemini smoke test · evaluation report · coverage matrix
-tests/                     541 tests (532 offline + 9 live, deselected by default)
+tests/                     549 tests (540 selected offline + 9 live, deselected by default)
 ```
 
 ## Honesty commitments

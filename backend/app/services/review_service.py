@@ -29,7 +29,7 @@ from backend.app.models.records import (
     DiagnosisRecord,
     ReviewRecord,
 )
-from backend.app.services import diagnosis_repo
+from backend.app.services import case_repo, diagnosis_repo
 from backend.app.services.errors import ConflictError, NotFoundError, ValidationError
 from backend.app.services.record_store import REVIEWS_FILE, JsonCollection
 
@@ -38,6 +38,89 @@ collection: JsonCollection[ReviewRecord] = JsonCollection(
 )
 
 VALID_VERDICTS = ("accepted", "edited", "rejected")
+
+#: Verdicts that represent a human disagreeing with the model, rather than agreeing with it.
+CORRECTION_VERDICTS = ("edited", "rejected")
+
+#: Providers whose output is generated locally rather than by a model call. A human may review
+#: such a diagnosis — the gate applies to every diagnosis without exception — but correcting a
+#: fixture is not evidence about model behaviour, so it must never count toward the
+#: Responsible-AI correction requirement.
+SYNTHETIC_PROVIDERS = ("mock",)
+GENUINE_PROVIDERS = ("gemini", "anthropic")
+
+
+def is_genuine_model_diagnosis(diagnosis: Optional[DiagnosisRecord]) -> bool:
+    """True only when this diagnosis came from an actual provider call.
+
+    A missing diagnosis record fails as well: a correction that cannot be traced back to a
+    stored model output is not evidence about a model either.
+    """
+    if diagnosis is None:
+        return False
+    return (diagnosis.provider or "").lower() in GENUINE_PROVIDERS
+
+
+def review_candidates() -> list[dict]:
+    """Return stored, unreviewed model diagnoses with their case ground truth."""
+    candidates = []
+    for diagnosis in diagnosis_repo.all_records(status="awaiting_human_review"):
+        if not is_genuine_model_diagnosis(diagnosis):
+            continue
+        case = case_repo.get_case(diagnosis.case_id or "")
+        if case is None:
+            continue
+        candidates.append(
+            {
+                "case_id": case.case_id,
+                "diagnosis_id": diagnosis.diagnosis_id,
+                "provider": diagnosis.provider,
+                "model": diagnosis.model,
+                "prompt_version": diagnosis.prompt_version,
+                "root_cause": diagnosis.ai.root_cause,
+                "category": diagnosis.ai.category,
+                "osi_layer": diagnosis.ai.osi_layer,
+                "confidence": diagnosis.ai.confidence,
+                "effective_confidence": diagnosis.effective_confidence,
+                "evidence_integrity": diagnosis.evidence_integrity.status,
+                "reconciliation": diagnosis.reconciliation.status,
+                "rule_findings": [finding.model_dump(mode="json") for finding in diagnosis.rule_findings],
+                "evidence": [item.model_dump(mode="json") for item in diagnosis.ai.evidence],
+                "fix_steps": [step.model_dump(mode="json") for step in diagnosis.ai.fix_steps],
+                "symptom": case.symptom,
+                "expected_fault": case.expected_fault,
+                "expected_category": case.concept_tag.value,
+                "expected_osi_layer": case.osi_layer.value,
+                "expected_rule_ids": list(case.expected_rule_ids),
+            }
+        )
+    return sorted(candidates, key=lambda item: (item["case_id"], item["diagnosis_id"]))
+
+
+def genuine_corrections(reviews: Optional[list[ReviewRecord]] = None) -> list[ReviewRecord]:
+    """The reviews that count toward the Responsible-AI requirement.
+
+    One definition, used by both the dashboard and the log builder, so the headline figure and
+    the file that backs it can never disagree.
+    """
+    records = all_records() if reviews is None else reviews
+    return [
+        review
+        for review in records
+        if review.verdict in CORRECTION_VERDICTS
+        and is_genuine_model_diagnosis(diagnosis_repo.get(review.diagnosis_id))
+    ]
+
+
+def synthetic_corrections(reviews: Optional[list[ReviewRecord]] = None) -> list[ReviewRecord]:
+    """Correction-shaped reviews that do not count, reported rather than dropped in silence."""
+    records = all_records() if reviews is None else reviews
+    return [
+        review
+        for review in records
+        if review.verdict in CORRECTION_VERDICTS
+        and not is_genuine_model_diagnosis(diagnosis_repo.get(review.diagnosis_id))
+    ]
 
 
 # --- lookups ------------------------------------------------------------------------------

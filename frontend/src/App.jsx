@@ -5,6 +5,7 @@ import ResponsibleAI from './pages/ResponsibleAI.jsx'
 import { CaseLibrary } from './pages/CaseLibrary.jsx'
 import { TriageWorkbench } from './pages/TriageWorkbench.jsx'
 import { HumanReview } from './pages/HumanReview.jsx'
+import ReviewQueue from './pages/ReviewQueue.jsx'
 import { FixVerify } from './pages/FixVerify.jsx'
 
 /**
@@ -32,6 +33,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/responsible-ai" element={<ResponsibleAI />} />
+        <Route path="/review" element={<ReviewQueue />} />
         <Route path="/cases" element={<CaseLibrary />} />
         <Route path="/cases/:caseId" element={<TriageWorkbench />} />
         <Route path="/review/:diagnosisId" element={<HumanReview />} />

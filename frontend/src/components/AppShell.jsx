@@ -16,6 +16,7 @@ import { Badge } from './StatusBadge.jsx'
 const NAV = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/cases', label: 'Cases' },
+  { to: '/review', label: 'Human Review' },
   { to: '/responsible-ai', label: 'Responsible AI' },
 ]
 

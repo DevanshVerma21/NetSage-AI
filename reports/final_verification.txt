@@ -1,0 +1,70 @@
+NETSAGE AI FINAL VERIFICATION
+=============================
+Verified: 2026-08-28
+
+1. Test result
+- Backend: 540 passed, 9 live-provider tests deselected by default.
+- Evaluation-integrity checker: PASS.
+
+2. Frontend
+- Production build: PASS.
+- E2E: 89/89 checks passed.
+
+3. Deterministic rule results
+- Dataset: 40 cases.
+- Rules: 15.
+- Expected-vs-fired: 40/40 PASS.
+- Rule pass rate: 100%.
+
+4. Dataset distribution
+- GATEWAY 5, VLAN 5, ROUTING 5, DHCP 5.
+- ACL 4, DNS 4, NAT 4, WIRELESS 4, INTERFACE_CONFIG 4.
+
+5. Official Gemini coverage
+- First batch: 20 requests attempted, 20 successful.
+- Continuation batch: 3 requests attempted, 2 successful, 1 quota blocked at CASE-005.
+- Total additional requests attempted: 23; no further calls were made after quota exhaustion.
+- Official current evaluations: 22/40.
+- Remaining 18 cases are unevaluated.
+
+6. Provider/model
+- Provider: Gemini.
+- Model: gemini-3.6-flash.
+- diagnose_prompt: v1.2.1.
+- Prompt SHA-256: cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c.
+- Current evaluation results also use the registered guardrails and fix-plan prompt versions.
+
+7. Evidence integrity and evaluation outcomes
+- Evidence integrity: 4 passed, 18 failed.
+- Reconciliation: 22 agree.
+- Evaluation results: 3 CORRECT, 19 PARTIAL, 0 INCORRECT.
+- Full-dataset AI accuracy is withheld because coverage is partial.
+- One CASE-005 quota failure remains retained; the superseded invalidated 1.2.0 CASE-001 record is preserved in its archive.
+
+8. Human review
+- Reviews: 10.
+- Accepted: 5.
+- Edited: 2.
+- Rejected: 3.
+- Genuine Responsible AI corrections: 5/5.
+- Corrections are sourced from stored genuine model diagnoses and human review records.
+
+9. Security checks
+- .env is not tracked.
+- No credential values were printed or returned by tested API payloads.
+- No Authorization/Bearer credential was found in tested responses.
+- No device credentials were found in the backend application.
+- No subprocess/os.system/eval/exec usage was found in backend/app.
+- No real device connectivity path was found in backend/app; execution scope is simulated_lab_model.
+- No secret values were written to reports or logs.
+- Confidential problem statement document is not tracked.
+
+10. Known limitations
+- Only 22/40 cases have official current-prompt Gemini evaluations.
+- Evidence verification failed for 18 of the 22 official records; those failures are retained and confidence is capped.
+- The remaining 18 cases are not evaluated and must not be inferred from deterministic results.
+- The system operates on simulated lab data and simulated fixes only.
+
+11. Submission readiness
+- READY for submission with partial AI coverage explicitly disclosed.
+- No additional Gemini calls are authorized or required for this report.

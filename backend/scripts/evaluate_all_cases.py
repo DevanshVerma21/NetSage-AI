@@ -171,6 +171,9 @@ def run(
             )
         else:
             print(f"FAILED — {record.error_type}: {record.error_message}")
+            if "429" in (record.error_message or "") or "quota" in (record.error_message or "").lower():
+                print("quota exhaustion detected — stopping immediately")
+                break
 
     return records
 

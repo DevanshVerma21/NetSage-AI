@@ -1,0 +1,118 @@
+﻿[{
+    "case_id":  "CASE-001",
+    "category":  "VLAN",
+    "severity":  "High",
+    "expected_rule_ids":  [
+                              "R004",
+                              "R005",
+                              "R006"
+                          ],
+    "expected_root_cause_keywords":  [
+                                         "VLAN 30",
+                                         "vlan database",
+                                         "not created",
+                                         "SVI",
+                                         "shutdown",
+                                         "inter-VLAN"
+                                     ],
+    "expected_osi_layer":  "L2",
+    "expected_category":  "VLAN",
+    "expected_fault":  "VLAN 30 was never created in the VLAN database on SW1. The Vlan30 SVI exists and holds 192.168.30.1/24 but is administratively shut down, so the SERVERS subnet has no active gateway, SW1 has no connected route to 192.168.30.0/24, and access port Gi0/2 shows Access Mode VLAN 30 as Inactive.",
+    "fired_rule_ids":  [
+                           "R004",
+                           "R005",
+                           "R006"
+                       ],
+    "ai_root_cause":  "VLAN 30 is missing from the Layer 2 VLAN database on SW1, causing access port Gi0/2 to remain inactive. In addition, SVI Vlan30 is administratively shut down. As a result, interface Vlan30 cannot come up, the directly connected route for 192.168.30.0/24 is not installed in the routing table, and hosts in VLAN 20 cannot reach SRV-FILES.",
+    "ai_osi_layer":  "L2",
+    "ai_category":  "VLAN",
+    "ai_evidence":  [
+                        {
+                            "source_command":  "SW1: show vlan brief",
+                            "excerpt":  "10   SALES                            active    Gi0/3",
+                            "why_it_matters":  "VLAN 30 is missing from the VLAN database, preventing access port Gi0/2 from becoming active and preventing SVI Vlan30 from operating.",
+                            "verified":  false,
+                            "failure_reason":  "unknown_source_command",
+                            "failure_detail":  "\u0027SW1: show vlan brief\u0027 is not among the supplied commands (ipconfig /all, ping 192.168.20.1, ping 192.168.30.10, show interfaces gi0/2 switchport, show ip arp, show ip interface brief, show ip route, show running-config interface vlan30, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+                        },
+                        {
+                            "source_command":  "SW1: show interfaces Gi0/2 switchport",
+                            "excerpt":  "Access Mode VLAN: 30 (Inactive)",
+                            "why_it_matters":  "Confirms that port Gi0/2 is assigned to VLAN 30, but is inactive because VLAN 30 has not been created in the switch VLAN database.",
+                            "verified":  false,
+                            "failure_reason":  "unknown_source_command",
+                            "failure_detail":  "\u0027SW1: show interfaces Gi0/2 switchport\u0027 is not among the supplied commands (ipconfig /all, ping 192.168.20.1, ping 192.168.30.10, show interfaces gi0/2 switchport, show ip arp, show ip interface brief, show ip route, show running-config interface vlan30, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+                        },
+                        {
+                            "source_command":  "SW1: show ip interface brief",
+                            "excerpt":  "Vlan30                 192.168.30.1    YES manual administratively down down",
+                            "why_it_matters":  "Shows interface Vlan30 is administratively shut down, so no Layer 3 routing or gateway service is available for subnet 192.168.30.0/24.",
+                            "verified":  false,
+                            "failure_reason":  "unknown_source_command",
+                            "failure_detail":  "\u0027SW1: show ip interface brief\u0027 is not among the supplied commands (ipconfig /all, ping 192.168.20.1, ping 192.168.30.10, show interfaces gi0/2 switchport, show ip arp, show ip interface brief, show ip route, show running-config interface vlan30, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+                        },
+                        {
+                            "source_command":  "SW1: show running-config interface Vlan30",
+                            "excerpt":  " shutdown",
+                            "why_it_matters":  "The explicit shutdown command configured on SVI Vlan30 keeps the interface in administratively down state.",
+                            "verified":  false,
+                            "failure_reason":  "unknown_source_command",
+                            "failure_detail":  "\u0027SW1: show running-config interface Vlan30\u0027 is not among the supplied commands (ipconfig /all, ping 192.168.20.1, ping 192.168.30.10, show interfaces gi0/2 switchport, show ip arp, show ip interface brief, show ip route, show running-config interface vlan30, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+                        }
+                    ],
+    "ai_insufficient_evidence":  false,
+    "next_command":  "show vlan brief",
+    "fix_steps":  [
+                      "1. [SW1] configure terminal; vlan 30; name SERVERS; exit ΓÇö Create VLAN 30 in the switch Layer 2 database so access port Gi0/2 becomes active and SVI Vlan30 can bind to a valid VLAN. (risk=low)",
+                      "2. [SW1] configure terminal; interface Vlan30; no shutdown; end ΓÇö Bring up SVI Vlan30 so it installs the directly connected route 192.168.30.0/24 into the routing table and routes inter-VLAN traffic to SRV-FILES. (risk=low)"
+                  ],
+    "model_confidence":  "high",
+    "effective_confidence":  "low",
+    "confidence_was_capped":  true,
+    "evidence_integrity":  "failed",
+    "total_citations":  4,
+    "verified_citations":  0,
+    "failed_citations":  4,
+    "reconciliation":  "agree",
+    "provider":  "gemini",
+    "model":  "gemini-3.6-flash",
+    "prompt_version":  "1.2.0",
+    "prompt_sha256":  "69a195782d8f803c4a86fee4060177f1d6eb1138f65f7b7964a1c1b1cd4d1e13",
+    "diagnosis_id":  "DIAG-e2c633db451e",
+    "evaluation_status":  "completed",
+    "evaluation_result":  "PARTIAL",
+    "agreement":  {
+                      "rule_agreement":  true,
+                      "matched_expected_rule_ids":  [
+                                                        "R005"
+                                                    ],
+                      "missed_expected_rule_ids":  [
+                                                       "R004",
+                                                       "R006"
+                                                   ],
+                      "keyword_agreement":  true,
+                      "matched_keywords":  [
+                                               "VLAN 30",
+                                               "vlan database",
+                                               "SVI",
+                                               "shutdown",
+                                               "inter-VLAN"
+                                           ],
+                      "missed_keywords":  [
+                                              "not created"
+                                          ],
+                      "keyword_hit_rate":  0.8333,
+                      "osi_agreement":  true,
+                      "category_agreement":  true
+                  },
+    "classification_reason":  "The diagnosis overlaps the ground truth but is not fully correct: secondary finding(s) R004, R006 not covered; evidence integrity failed.",
+    "error_type":  null,
+    "error_message":  null,
+    "attempts":  1,
+    "latency_ms":  28748,
+    "timestamp":  "2026-08-26T12:32:19+00:00",
+    "invalidated":  true,
+    "invalidated_reason":  "Produced under diagnose_prompt v1.2.0, before the v1.2.1 source_command contract fix. All four excerpts were verbatim but every citation failed as unknown_source_command because the model prefixed the device name (\u0027SW1: show vlan brief\u0027). Requires a live re-run under v1.2.1.",
+    "requires_rerun":  true
+}
+]

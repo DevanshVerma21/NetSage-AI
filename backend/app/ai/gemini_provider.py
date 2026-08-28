@@ -26,9 +26,9 @@ from backend.app.models.diagnosis import AIDiagnosis
 # How many times to hand a validation error back to the model before giving up.
 MAX_REPAIR_ATTEMPTS = 1
 
-# Transient server-side conditions worth retrying: the free tier returns 503 under load and
-# 429 when a per-minute quota is hit. Neither indicates a fault in the request.
-RETRYABLE_STATUS = (429, 500, 502, 503, 504)
+# Transient server-side conditions worth retrying. A 429 is quota exhaustion for this run,
+# so it must be surfaced immediately rather than spending additional authorized requests.
+RETRYABLE_STATUS = (500, 502, 503, 504)
 MAX_TRANSIENT_RETRIES = 3
 RETRY_BASE_DELAY_SECONDS = 2.0
 
@@ -122,8 +122,10 @@ class GeminiProvider:
         would make the prototype look broken when it is not.
         """
         last_exc: Optional[Exception] = None
+        attempts = 0
 
         for attempt in range(MAX_TRANSIENT_RETRIES + 1):
+            attempts += 1
             try:
                 return client.models.generate_content(
                     model=self.model, contents=contents, config=config
@@ -138,7 +140,7 @@ class GeminiProvider:
         # settings object, so no credential can reach the error text or the traceback.
         raise ProviderError(
             f"Gemini request failed for model '{self.model}' after "
-            f"{MAX_TRANSIENT_RETRIES + 1} attempt(s): "
+            f"{attempts} attempt(s): "
             f"{type(last_exc).__name__}: {last_exc}"
         ) from last_exc
 
@@ -236,6 +238,8 @@ def _is_transient(exc: Exception) -> bool:
     so this keeps working if the SDK changes its exception hierarchy.
     """
     code = getattr(exc, "code", None) or getattr(exc, "status_code", None)
+    if code == 429 or "429" in str(exc):
+        return False
     if isinstance(code, int) and code in RETRYABLE_STATUS:
         return True
 
@@ -247,7 +251,7 @@ def _is_transient(exc: Exception) -> bool:
     return any(
         marker in lowered
         for marker in ("unavailable", "high demand", "overloaded", "try again later",
-                       "resource_exhausted", "deadline")
+                   "deadline")
     )
 
 

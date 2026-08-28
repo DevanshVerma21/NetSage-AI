@@ -32,6 +32,7 @@ def load(name: str):
 
 print("\n1. files on disk")
 archive = load("evaluation_results.prompt-1.0.0.archive.json")
+invalidated_archive = load("evaluation_results.prompt-1.2.0.invalidated.archive.json")
 results = load("evaluation_results.json")
 check("v1.0.0 archive retained", archive is not None)
 check(
@@ -40,17 +41,24 @@ check(
     f"{len(archive) if isinstance(archive, list) else archive}",
 )
 check("the live results file exists", isinstance(results, list))
-check("responsible_ai_log.json is absent (no genuine corrections yet)",
-      not (DATA / "responsible_ai_log.json").exists())
+check("v1.2.0 invalidated record archive retained",
+      isinstance(invalidated_archive, list) and len(invalidated_archive) == 1)
+check("responsible_ai_log.json contains five genuine corrections",
+      isinstance(load("responsible_ai_log.json"), dict)
+      and len(load("responsible_ai_log.json").get("corrections", [])) == 5)
 
 print("\n2. raw record classification, computed from the file")
 raw_official = [
     r for r in results
-    if r.get("evaluation_status") == "completed" and not r.get("invalidated")
+      if r.get("evaluation_status") == "completed"
+      and not r.get("invalidated")
+      and r.get("provider") == "gemini"
+      and r.get("prompt_version") == "1.2.1"
 ]
-raw_invalidated = [r for r in results if r.get("invalidated")]
+raw_invalidated = [r for r in (invalidated_archive or []) if r.get("invalidated")]
 raw_failed = [r for r in results if r.get("evaluation_status") != "completed"]
-check("no record is official", len(raw_official) == 0, f"{[r['case_id'] for r in raw_official]}")
+check("22 current Gemini records are official", len(raw_official) == 22,
+        f"{len(raw_official)}: {[r['case_id'] for r in raw_official]}")
 check("the v1.2.0 CASE-001 record is retained and invalidated",
       [r["case_id"] for r in raw_invalidated] == ["CASE-001"],
       f"{[r['case_id'] for r in raw_invalidated]}")
@@ -59,11 +67,11 @@ check("the invalidated record was produced under prompt 1.2.0",
       raw_invalidated[0].get("prompt_version") if raw_invalidated else "no record")
 check("it is flagged requires_rerun",
       bool(raw_invalidated and raw_invalidated[0].get("requires_rerun")))
-check("the two quota failures are retained",
-      sorted(r["case_id"] for r in raw_failed) == ["CASE-002", "CASE-003"],
+check("the remaining quota failure is retained",
+      sorted(r["case_id"] for r in raw_failed) == ["CASE-005"],
       f"{sorted(r['case_id'] for r in raw_failed)}")
-check("no v1.2.1 record exists yet",
-      not [r for r in results if r.get("prompt_version") == "1.2.1"])
+check("all official records use v1.2.1",
+      all(r.get("prompt_version") == "1.2.1" for r in raw_official))
 
 print("\n3. the dashboard payload matches those files exactly")
 payload = d.dashboard()
@@ -73,18 +81,19 @@ hr = payload["human_review"]
 
 check("evaluated == official records on disk", ai["evaluated"] == len(raw_official),
       f"{ai['evaluated']} vs {len(raw_official)}")
-check("official Gemini evaluations are 0 of 40",
-      (ai["evaluated"], ai["total"]) == (0, 40), f"{ai['evaluated']}/{ai['total']}")
-check("remaining == 40", ai["remaining"] == 40, str(ai["remaining"]))
-check("invalidated count matches", ai["invalidated"] == len(raw_invalidated))
+check("official Gemini evaluations are 22 of 40",
+      (ai["evaluated"], ai["total"]) == (22, 40), f"{ai['evaluated']}/{ai['total']}" )
+check("remaining == 18", ai["remaining"] == 18, str(ai["remaining"]))
+check("active invalidated count matches",
+      ai["invalidated"] == len([r for r in results if r.get("invalidated")]))
 check("failed count matches", ai["failed_calls"] == len(raw_failed))
 check("stored_records == rows in the file", ai["stored_records"] == len(results))
 check("accuracy is withheld while coverage is incomplete", ai["accuracy"] is None,
       str(ai["accuracy"]))
-check("no result bucket was inflated by an unofficial row",
-      all(v == 0 for v in ai["results"].values()), json.dumps(ai["results"]))
+check("result buckets contain only official rows",
+      sum(ai["results"].values()) == 22, json.dumps(ai["results"]))
 check("status names the real state",
-      ai["status"] == "NOT_STARTED — Gemini quota limited", ai["status"])
+      ai["status"] == "PARTIAL — Gemini quota limited", ai["status"])
 
 print("\n4. deterministic figures match the engine and the dataset")
 check("40 cases", det["total_cases"] == 40, str(det["total_cases"]))
@@ -101,11 +110,12 @@ check("review count matches the store", hr["total_reviews"] == len(stored_review
       f"{hr['total_reviews']} vs {len(stored_reviews)}")
 check("corrections are counted, not targeted",
       hr["corrections"] == len([r for r in stored_reviews if r.verdict in ("edited", "rejected")]))
-check("the incomplete state is reported",
-      hr["incomplete_message"] == "Human review data incomplete", str(hr["incomplete_message"]))
+check("human review totals are 10 / 5 / 2 / 3",
+      (hr["total_reviews"], hr["accepted"], hr["edited"], hr["rejected"], hr["corrections"])
+      == (10, 5, 2, 3, 5), str(hr))
 log = d.responsible_ai_log()
-check("the correction log reports an empty state, not examples",
-      log["available"] is False and log["corrections"] == [])
+check("the correction log exposes five stored corrections",
+      log["available"] is True and len(log["corrections"]) == 5)
 
 print("\n6. nothing on the page leaks a credential")
 blob = json.dumps(payload).lower() + json.dumps(d.responsible_ai()).lower()

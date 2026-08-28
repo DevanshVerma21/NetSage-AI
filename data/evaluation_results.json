@@ -24,14 +24,14 @@
       "R005",
       "R006"
     ],
-    "ai_root_cause": "VLAN 30 is missing from the Layer 2 VLAN database on SW1, causing access port Gi0/2 to remain inactive. In addition, SVI Vlan30 is administratively shut down. As a result, interface Vlan30 cannot come up, the directly connected route for 192.168.30.0/24 is not installed in the routing table, and hosts in VLAN 20 cannot reach SRV-FILES.",
+    "ai_root_cause": "VLAN 30 has not been created in the VLAN database on SW1. As a result, access port Gi0/2 (connected to SRV-FILES) is inactive, interface Vlan30 is administratively down, and no route to 192.168.30.0/24 exists in the routing table.",
     "ai_osi_layer": "L2",
     "ai_category": "VLAN",
     "ai_evidence": [
       {
         "source_command": "SW1: show vlan brief",
-        "excerpt": "10   SALES                            active    Gi0/3",
-        "why_it_matters": "VLAN 30 is missing from the VLAN database, preventing access port Gi0/2 from becoming active and preventing SVI Vlan30 from operating.",
+        "excerpt": "20   HR                               active    Gi0/1",
+        "why_it_matters": "VLAN 30 is missing from the VLAN database output on SW1; only VLANs 1, 10, and 20 are present.",
         "verified": false,
         "failure_reason": "unknown_source_command",
         "failure_detail": "'SW1: show vlan brief' is not among the supplied commands (ipconfig /all, ping 192.168.20.1, ping 192.168.30.10, show interfaces gi0/2 switchport, show ip arp, show ip interface brief, show ip route, show running-config interface vlan30, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
@@ -39,7 +39,7 @@
       {
         "source_command": "SW1: show interfaces Gi0/2 switchport",
         "excerpt": "Access Mode VLAN: 30 (Inactive)",
-        "why_it_matters": "Confirms that port Gi0/2 is assigned to VLAN 30, but is inactive because VLAN 30 has not been created in the switch VLAN database.",
+        "why_it_matters": "Interface Gi0/2 is assigned to VLAN 30, but the port is marked Inactive because VLAN 30 does not exist in the switch database.",
         "verified": false,
         "failure_reason": "unknown_source_command",
         "failure_detail": "'SW1: show interfaces Gi0/2 switchport' is not among the supplied commands (ipconfig /all, ping 192.168.20.1, ping 192.168.30.10, show interfaces gi0/2 switchport, show ip arp, show ip interface brief, show ip route, show running-config interface vlan30, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
@@ -47,7 +47,7 @@
       {
         "source_command": "SW1: show ip interface brief",
         "excerpt": "Vlan30                 192.168.30.1    YES manual administratively down down",
-        "why_it_matters": "Shows interface Vlan30 is administratively shut down, so no Layer 3 routing or gateway service is available for subnet 192.168.30.0/24.",
+        "why_it_matters": "SVI Vlan30 is administratively down, preventing SW1 from acting as the default gateway for the 192.168.30.0/24 network.",
         "verified": false,
         "failure_reason": "unknown_source_command",
         "failure_detail": "'SW1: show ip interface brief' is not among the supplied commands (ipconfig /all, ping 192.168.20.1, ping 192.168.30.10, show interfaces gi0/2 switchport, show ip arp, show ip interface brief, show ip route, show running-config interface vlan30, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
@@ -55,7 +55,7 @@
       {
         "source_command": "SW1: show running-config interface Vlan30",
         "excerpt": " shutdown",
-        "why_it_matters": "The explicit shutdown command configured on SVI Vlan30 keeps the interface in administratively down state.",
+        "why_it_matters": "The interface configuration for Vlan30 explicitly includes the shutdown command.",
         "verified": false,
         "failure_reason": "unknown_source_command",
         "failure_detail": "'SW1: show running-config interface Vlan30' is not among the supplied commands (ipconfig /all, ping 192.168.20.1, ping 192.168.30.10, show interfaces gi0/2 switchport, show ip arp, show ip interface brief, show ip route, show running-config interface vlan30, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
@@ -64,8 +64,8 @@
     "ai_insufficient_evidence": false,
     "next_command": "show vlan brief",
     "fix_steps": [
-      "1. [SW1] configure terminal; vlan 30; name SERVERS; exit — Create VLAN 30 in the switch Layer 2 database so access port Gi0/2 becomes active and SVI Vlan30 can bind to a valid VLAN. (risk=low)",
-      "2. [SW1] configure terminal; interface Vlan30; no shutdown; end — Bring up SVI Vlan30 so it installs the directly connected route 192.168.30.0/24 into the routing table and routes inter-VLAN traffic to SRV-FILES. (risk=low)"
+      "1. [SW1] configure terminal; vlan 30; name SERVERS; exit — Create VLAN 30 in the switch VLAN database so that access port Gi0/2 becomes active. (risk=low)",
+      "2. [SW1] configure terminal; interface Vlan30; no shutdown; end — Enable SVI Vlan30 to bring up the gateway interface and install the connected route for 192.168.30.0/24 into the routing table. (risk=low)"
     ],
     "model_confidence": "high",
     "effective_confidence": "low",
@@ -77,9 +77,9 @@
     "reconciliation": "agree",
     "provider": "gemini",
     "model": "gemini-3.6-flash",
-    "prompt_version": "1.2.0",
-    "prompt_sha256": "69a195782d8f803c4a86fee4060177f1d6eb1138f65f7b7964a1c1b1cd4d1e13",
-    "diagnosis_id": "DIAG-e2c633db451e",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-0f8145b3c4bb",
     "evaluation_status": "completed",
     "evaluation_result": "PARTIAL",
     "agreement": {
@@ -96,13 +96,13 @@
         "VLAN 30",
         "vlan database",
         "SVI",
-        "shutdown",
-        "inter-VLAN"
+        "shutdown"
       ],
       "missed_keywords": [
-        "not created"
+        "not created",
+        "inter-VLAN"
       ],
-      "keyword_hit_rate": 0.8333,
+      "keyword_hit_rate": 0.6667,
       "osi_agreement": true,
       "category_agreement": true
     },
@@ -110,11 +110,11 @@
     "error_type": null,
     "error_message": null,
     "attempts": 1,
-    "latency_ms": 28748,
-    "timestamp": "2026-08-26T12:32:19+00:00",
-    "invalidated": true,
-    "invalidated_reason": "Produced under diagnose_prompt v1.2.0, before the v1.2.1 source_command contract fix. All four excerpts were verbatim but every citation failed as unknown_source_command because the model prefixed the device name ('SW1: show vlan brief'). Requires a live re-run under v1.2.1.",
-    "requires_rerun": true
+    "latency_ms": 35986,
+    "timestamp": "2026-08-28T12:13:43+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
   },
   {
     "case_id": "CASE-002",
@@ -135,36 +135,89 @@
     "expected_osi_layer": "L3",
     "expected_category": "VLAN",
     "expected_fault": "VLAN 30 exists and has a member, but no Vlan30 SVI was ever created on SW1, so 192.168.30.0/24 has no gateway and no connected route.",
-    "fired_rule_ids": [],
-    "ai_root_cause": null,
-    "ai_osi_layer": null,
-    "ai_category": null,
-    "ai_evidence": [],
+    "fired_rule_ids": [
+      "R003",
+      "R006",
+      "R015"
+    ],
+    "ai_root_cause": "Interface Vlan30 (SVI) has not been configured on SW1 with IP address 192.168.30.1/24. While Layer 2 VLAN 30 exists and Gi0/3 is assigned to it, the missing Layer 3 SVI prevents SW1 from serving as the default gateway for VLAN 30 and routing traffic between VLAN 30 and other subnets.",
+    "ai_osi_layer": "L3",
+    "ai_category": "VLAN",
+    "ai_evidence": [
+      {
+        "source_command": "SW1: show ip interface brief",
+        "excerpt": "Vlan20                     192.168.20.1    YES manual up                    up",
+        "why_it_matters": "Shows that SVIs only exist for Vlan10 and Vlan20. Interface Vlan30 is absent from the Layer 3 interface table.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW1: show ip interface brief' is not among the supplied commands (ipconfig /all, ping 192.168.10.1, ping 192.168.30.1, ping 192.168.30.10, show ip interface brief, show ip route, show running-config | include interface vlan, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "SRV-ERP: ping 192.168.30.1",
+        "excerpt": "Destination host unreachable.",
+        "why_it_matters": "SRV-ERP cannot reach gateway 192.168.30.1 because no Layer 3 interface on SW1 holds that IP address.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SRV-ERP: ping 192.168.30.1' is not among the supplied commands (ipconfig /all, ping 192.168.10.1, ping 192.168.30.1, ping 192.168.30.10, show ip interface brief, show ip route, show running-config | include interface vlan, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "SW1: show running-config | include interface Vlan",
+        "excerpt": "interface Vlan20",
+        "why_it_matters": "Confirms interface Vlan30 is missing from SW1's running configuration.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW1: show running-config | include interface Vlan' is not among the supplied commands (ipconfig /all, ping 192.168.10.1, ping 192.168.30.1, ping 192.168.30.10, show ip interface brief, show ip route, show running-config | include interface vlan, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
     "ai_insufficient_evidence": false,
-    "next_command": null,
-    "fix_steps": [],
-    "model_confidence": null,
-    "effective_confidence": null,
-    "confidence_was_capped": false,
-    "evidence_integrity": null,
-    "total_citations": 0,
+    "next_command": "show interface Vlan30",
+    "fix_steps": [
+      "1. [SW1] configure terminal; interface Vlan30; ip address 192.168.30.1 255.255.255.0; no shutdown; end — Create SVI Vlan30 and assign gateway address 192.168.30.1/24 to enable inter-VLAN routing for VLAN 30. (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 3,
     "verified_citations": 0,
-    "failed_citations": 0,
-    "reconciliation": null,
+    "failed_citations": 3,
+    "reconciliation": "agree",
     "provider": "gemini",
     "model": "gemini-3.6-flash",
-    "prompt_version": null,
-    "prompt_sha256": null,
-    "diagnosis_id": null,
-    "evaluation_status": "failed",
-    "evaluation_result": "UNABLE_TO_EVALUATE",
-    "agreement": null,
-    "classification_reason": "The diagnosis could not be produced, so no comparison against the ground truth was possible.",
-    "error_type": "ProviderError",
-    "error_message": "Gemini request failed for model 'gemini-3.6-flash' after 4 attempt(s): ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 58.267932959s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '58s'}]}}",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-f58b515c6a83",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R015"
+      ],
+      "missed_expected_rule_ids": [
+        "R003",
+        "R006"
+      ],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "missing svi",
+        "vlan 30",
+        "inter-vlan routing",
+        "SW1"
+      ],
+      "missed_keywords": [
+        "no gateway"
+      ],
+      "keyword_hit_rate": 0.8,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: secondary finding(s) R003, R006 not covered; evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
     "attempts": 1,
-    "latency_ms": 0,
-    "timestamp": "2026-08-26T12:37:02+00:00",
+    "latency_ms": 28397,
+    "timestamp": "2026-08-28T12:21:17+00:00",
     "invalidated": false,
     "invalidated_reason": null,
     "requires_rerun": false
@@ -186,6 +239,204 @@
     "expected_osi_layer": "L2",
     "expected_category": "VLAN",
     "expected_fault": "SW1 Gi0/2 is configured switchport access vlan 10, but the port serves the HR segment, so PC-HR's frames are switched into VLAN 10 instead of VLAN 20.",
+    "fired_rule_ids": [
+      "R007"
+    ],
+    "ai_root_cause": "Interface GigabitEthernet0/2 on SW1 is incorrectly configured for access VLAN 10 (SALES) instead of VLAN 20 (HR). As a result, PC-HR is placed in the wrong broadcast domain and cannot reach its default gateway 192.168.20.1.",
+    "ai_osi_layer": "L2",
+    "ai_category": "VLAN",
+    "ai_evidence": [
+      {
+        "source_command": "SW1: show running-config interface GigabitEthernet0/2",
+        "excerpt": " switchport access vlan 10",
+        "why_it_matters": "Shows interface Gi0/2 is explicitly assigned to access VLAN 10 instead of VLAN 20.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW1: show running-config interface GigabitEthernet0/2' is not among the supplied commands (ipconfig /all, ping 192.168.20.1, show ip interface brief, show ip route, show running-config interface gigabitethernet0/2, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "SW1: show vlan brief",
+        "excerpt": "10   SALES                            active    Gi0/1, Gi0/2",
+        "why_it_matters": "Confirms Gi0/2 is actively assigned to VLAN 10 (SALES), putting PC-HR into the wrong broadcast domain.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW1: show vlan brief' is not among the supplied commands (ipconfig /all, ping 192.168.20.1, show ip interface brief, show ip route, show running-config interface gigabitethernet0/2, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-HR: ping 192.168.20.1",
+        "excerpt": "Request timed out.",
+        "why_it_matters": "Confirms traffic to gateway 192.168.20.1 fails because ARP requests land in VLAN 10 instead of VLAN 20.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-HR: ping 192.168.20.1' is not among the supplied commands (ipconfig /all, ping 192.168.20.1, show ip interface brief, show ip route, show running-config interface gigabitethernet0/2, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "SW1: show mac address-table interface GigabitEthernet0/2",
+    "fix_steps": [
+      "1. [SW1] configure terminal; interface GigabitEthernet0/2; switchport access vlan 20; end — Reassign interface GigabitEthernet0/2 to access VLAN 20 so PC-HR resides in the HR broadcast domain. (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 3,
+    "verified_citations": 0,
+    "failed_citations": 3,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-824fc99e8a05",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R007"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "gi0/2",
+        "vlan 10",
+        "vlan 20"
+      ],
+      "missed_keywords": [
+        "wrong access vlan",
+        "access port"
+      ],
+      "keyword_hit_rate": 0.6,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 88818,
+    "timestamp": "2026-08-28T12:40:31+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-004",
+    "category": "VLAN",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R008"
+    ],
+    "expected_root_cause_keywords": [
+      "trunk",
+      "allowed vlan",
+      "vlan 20 pruned",
+      "gi0/24",
+      "SW2"
+    ],
+    "expected_osi_layer": "L2",
+    "expected_category": "VLAN",
+    "expected_fault": "SW2's trunk Gi0/24 permits only VLAN 10 (switchport trunk allowed vlan 10), so VLAN 20 frames are pruned on the uplink and never reach the Vlan20 SVI on SW1.",
+    "fired_rule_ids": [
+      "R008"
+    ],
+    "ai_root_cause": "VLAN 20 is missing from the allowed VLAN list on SW2's trunk interface GigabitEthernet0/24. While SW1 allows VLANs 10 and 20, SW2 only allows VLAN 10, causing VLAN 20 traffic to be pruned across the uplink so VLAN 20 clients behind SW2 cannot reach their default gateway on SW1.",
+    "ai_osi_layer": "L2",
+    "ai_category": "VLAN",
+    "ai_evidence": [
+      {
+        "source_command": "SW2: show interfaces trunk",
+        "excerpt": "Gi0/24      10",
+        "why_it_matters": "Shows that SW2's trunk port Gi0/24 is explicitly configured to allow only VLAN 10, pruning VLAN 20.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW2: show interfaces trunk' is not among the supplied commands (ipconfig /all, ping 192.168.10.1, ping 192.168.20.1, show interfaces trunk, show ip interface brief, show ip route, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "SW1: show interfaces trunk",
+        "excerpt": "Gi0/24      10,20",
+        "why_it_matters": "Confirms SW1 allows both VLAN 10 and VLAN 20 on its end of the trunk, proving a trunk configuration mismatch across the link.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW1: show interfaces trunk' is not among the supplied commands (ipconfig /all, ping 192.168.10.1, ping 192.168.20.1, show interfaces trunk, show ip interface brief, show ip route, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-FIN: ping 192.168.20.1",
+        "excerpt": "Request timed out.",
+        "why_it_matters": "Demonstrates that PC-FIN in VLAN 20 cannot reach the gateway across the uplink due to the pruned VLAN.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-FIN: ping 192.168.20.1' is not among the supplied commands (ipconfig /all, ping 192.168.10.1, ping 192.168.20.1, show interfaces trunk, show ip interface brief, show ip route, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "SW2: show running-config interface GigabitEthernet0/24",
+    "fix_steps": [
+      "1. [SW2] configure terminal; interface GigabitEthernet0/24; switchport trunk allowed vlan add 20; end — Add VLAN 20 to the allowed list on SW2's trunk interface Gi0/24 so VLAN 20 frames can pass to SW1. (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 3,
+    "verified_citations": 0,
+    "failed_citations": 3,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-fa3fcfd24ed6",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R008"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "trunk",
+        "allowed vlan",
+        "gi0/24",
+        "SW2"
+      ],
+      "missed_keywords": [
+        "vlan 20 pruned"
+      ],
+      "keyword_hit_rate": 0.8,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 65495,
+    "timestamp": "2026-08-28T12:41:36+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-005",
+    "category": "VLAN",
+    "severity": "Medium",
+    "expected_rule_ids": [
+      "R008"
+    ],
+    "expected_root_cause_keywords": [
+      "native vlan mismatch",
+      "native vlan 99",
+      "trunk",
+      "gi0/24",
+      "untagged"
+    ],
+    "expected_osi_layer": "L2",
+    "expected_category": "VLAN",
+    "expected_fault": "SW2's trunk uses switchport trunk native vlan 99 while SW1 and the documented design use native VLAN 1, so untagged traffic is placed in a different VLAN at each end of the same trunk.",
     "fired_rule_ids": [],
     "ai_root_cause": null,
     "ai_osi_layer": null,
@@ -212,10 +463,1773 @@
     "agreement": null,
     "classification_reason": "The diagnosis could not be produced, so no comparison against the ground truth was possible.",
     "error_type": "ProviderError",
-    "error_message": "Gemini request failed for model 'gemini-3.6-flash' after 4 attempt(s): ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 8.583020462s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '8s'}]}}",
+    "error_message": "Gemini request failed for model 'gemini-3.6-flash' after 4 attempt(s): ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 28.282201476s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.6-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '28s'}]}}",
     "attempts": 1,
     "latency_ms": 0,
-    "timestamp": "2026-08-26T12:32:52+00:00",
+    "timestamp": "2026-08-28T12:47:32+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-006",
+    "category": "GATEWAY",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R003"
+    ],
+    "expected_root_cause_keywords": [
+      "wrong default gateway",
+      "192.168.50.254",
+      "no first hop",
+      "PC-ACC"
+    ],
+    "expected_osi_layer": "L3",
+    "expected_category": "GATEWAY",
+    "expected_fault": "PC-ACC's default gateway is 192.168.50.254, an address inside its own subnet that no device in the topology owns, so it has no working first hop.",
+    "fired_rule_ids": [
+      "R003"
+    ],
+    "ai_root_cause": "PC-ACC is configured with an incorrect default gateway IP address of 192.168.50.254 instead of 192.168.50.1. Because no device on the local subnet owns 192.168.50.254, ARP resolution fails and PC-ACC cannot forward packets to remote subnets such as the server LAN.",
+    "ai_osi_layer": "L3",
+    "ai_category": "GATEWAY",
+    "ai_evidence": [
+      {
+        "source_command": "PC-ACC: ipconfig /all",
+        "excerpt": "Default Gateway.................: 192.168.50.254",
+        "why_it_matters": "Shows PC-ACC is attempting to use 192.168.50.254 as its default gateway.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-ACC: ipconfig /all' is not among the supplied commands (ipconfig /all, ping 192.168.50.254, ping 192.168.60.1, ping 192.168.60.10, show ip interface brief, show ip route). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "R1: show ip interface brief",
+        "excerpt": "GigabitEthernet0/0         192.168.50.1    YES manual up                    up",
+        "why_it_matters": "Confirms R1's interface on the accounting LAN is actually 192.168.50.1, creating a gateway IP mismatch.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R1: show ip interface brief' is not among the supplied commands (ipconfig /all, ping 192.168.50.254, ping 192.168.60.1, ping 192.168.60.10, show ip interface brief, show ip route). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-ACC: ping 192.168.50.254",
+        "excerpt": "Destination host unreachable.",
+        "why_it_matters": "Demonstrates that 192.168.50.254 is unreachable because no host or interface responds to ARP for that IP.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-ACC: ping 192.168.50.254' is not among the supplied commands (ipconfig /all, ping 192.168.50.254, ping 192.168.60.1, ping 192.168.60.10, show ip interface brief, show ip route). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "PC-ACC: ping 192.168.50.1",
+    "fix_steps": [
+      "1. [PC-ACC] ipconfig 192.168.50.20 255.255.255.0 192.168.50.1 — Update the default gateway on PC-ACC to point to R1's GigabitEthernet0/0 interface IP (192.168.50.1). (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 3,
+    "verified_citations": 0,
+    "failed_citations": 3,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-3d6d750b2edd",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R003"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "192.168.50.254",
+        "PC-ACC"
+      ],
+      "missed_keywords": [
+        "wrong default gateway",
+        "no first hop"
+      ],
+      "keyword_hit_rate": 0.5,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 66691,
+    "timestamp": "2026-08-28T12:11:09+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-007",
+    "category": "GATEWAY",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R003"
+    ],
+    "expected_root_cause_keywords": [
+      "gateway outside subnet",
+      "192.168.7.1",
+      "192.168.70.0/24",
+      "PC-BRANCH"
+    ],
+    "expected_osi_layer": "L3",
+    "expected_category": "GATEWAY",
+    "expected_fault": "PC-BRANCH's default gateway 192.168.7.1 is outside its own 192.168.70.0/24 network (a mistyped octet), so the host cannot ARP for it at all.",
+    "fired_rule_ids": [
+      "R003"
+    ],
+    "ai_root_cause": "PC-BRANCH has an incorrectly configured default gateway (192.168.7.1 instead of 192.168.70.1). Because 192.168.7.1 is outside PC-BRANCH's local subnet (192.168.70.0/24), the host cannot determine a route to reach its gateway and drops outgoing traffic locally.",
+    "ai_osi_layer": "L3",
+    "ai_category": "GATEWAY",
+    "ai_evidence": [
+      {
+        "source_command": "PC-BRANCH: ipconfig /all",
+        "excerpt": "   Default Gateway.................: 192.168.7.1",
+        "why_it_matters": "PC-BRANCH is configured with default gateway 192.168.7.1, which belongs to a different subnet than its assigned IP 192.168.70.20/24.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-BRANCH: ipconfig /all' is not among the supplied commands (ipconfig /all, ping 192.168.7.1, ping 192.168.70.1, show ip interface brief, show ip route). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-BRANCH: ping 192.168.7.1",
+        "excerpt": "Destination host unreachable (no route on the local host).",
+        "why_it_matters": "Confirms the OS IP stack fails to forward packets to 192.168.7.1 because the destination gateway address is outside the local subnet 192.168.70.0/24.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-BRANCH: ping 192.168.7.1' is not among the supplied commands (ipconfig /all, ping 192.168.7.1, ping 192.168.70.1, show ip interface brief, show ip route). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "R2: show ip interface brief",
+        "excerpt": "GigabitEthernet0/0         192.168.70.1    YES manual up                    up",
+        "why_it_matters": "Demonstrates that the actual router interface gateway for the 192.168.70.0/24 LAN is 192.168.70.1, not 192.168.7.1.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R2: show ip interface brief' is not among the supplied commands (ipconfig /all, ping 192.168.7.1, ping 192.168.70.1, show ip interface brief, show ip route). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-DESK: ipconfig /all",
+        "excerpt": "   Default Gateway.................: 192.168.70.1",
+        "why_it_matters": "Shows that working host PC-DESK on the same LAN uses 192.168.70.1 as its default gateway.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-DESK: ipconfig /all' is not among the supplied commands (ipconfig /all, ping 192.168.7.1, ping 192.168.70.1, show ip interface brief, show ip route). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "ping 192.168.70.1",
+    "fix_steps": [
+      "1. [PC-BRANCH] ipconfig /setgateway 192.168.70.1 — Update the default gateway setting on PC-BRANCH to point to R2's GigabitEthernet0/0 address (192.168.70.1). (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 4,
+    "verified_citations": 0,
+    "failed_citations": 4,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-c4aaa2d17b23",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R003"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "192.168.7.1",
+        "192.168.70.0/24",
+        "PC-BRANCH"
+      ],
+      "missed_keywords": [
+        "gateway outside subnet"
+      ],
+      "keyword_hit_rate": 0.75,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 36359,
+    "timestamp": "2026-08-28T12:16:51+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-011",
+    "category": "DHCP",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R010"
+    ],
+    "expected_root_cause_keywords": [
+      "dhcp pool network",
+      "192.168.10.0",
+      "192.168.100.0/24",
+      "no lease"
+    ],
+    "expected_osi_layer": "L3",
+    "expected_category": "DHCP",
+    "expected_fault": "The STAFF-POOL network is 192.168.10.0/24, which matches none of SW-DHCP's attached subnets, so no pool serves the 192.168.100.0/24 staff segment and its clients get nothing.",
+    "fired_rule_ids": [
+      "R010"
+    ],
+    "ai_root_cause": "The DHCP pool STAFF-POOL on SW-DHCP is misconfigured with network 192.168.10.0/24 instead of 192.168.100.0/24. Because SW-DHCP's Vlan100 SVI is on 192.168.100.1, incoming DHCP requests on Vlan100 do not match any configured DHCP pool, causing PC-NEW's DHCP requests to time out.",
+    "ai_osi_layer": "L3",
+    "ai_category": "DHCP",
+    "ai_evidence": [
+      {
+        "source_command": "SW-DHCP: show running-config | section dhcp",
+        "excerpt": " network 192.168.10.0 255.255.255.0",
+        "why_it_matters": "The pool is configured for the 192.168.10.0/24 network, which is a typo for the staff subnet 192.168.100.0/24.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW-DHCP: show running-config | section dhcp' is not among the supplied commands (ipconfig /all, ping 192.168.100.1, show ip dhcp binding, show ip interface brief, show ip route, show running-config | section dhcp, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "SW-DHCP: show ip interface brief",
+        "excerpt": "Vlan100                    192.168.100.1   YES manual up                    up",
+        "why_it_matters": "Vlan100 is configured on subnet 192.168.100.0/24 (192.168.100.1), so DHCP requests arriving on this interface expect a pool serving 192.168.100.0/24.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW-DHCP: show ip interface brief' is not among the supplied commands (ipconfig /all, ping 192.168.100.1, show ip dhcp binding, show ip interface brief, show ip route, show running-config | section dhcp, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-NEW: ipconfig /all",
+        "excerpt": "   DHCP request timed out — no DHCP server responded, address is unconfigured.",
+        "why_it_matters": "Confirms PC-NEW receives no response because no pool matches the incoming interface IP subnet.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-NEW: ipconfig /all' is not among the supplied commands (ipconfig /all, ping 192.168.100.1, show ip dhcp binding, show ip interface brief, show ip route, show running-config | section dhcp, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "show ip dhcp pool STAFF-POOL",
+    "fix_steps": [
+      "1. [SW-DHCP] configure terminal; ip dhcp pool STAFF-POOL; no network 192.168.10.0 255.255.255.0; network 192.168.100.0 255.255.255.0; end — Correct the network statement in STAFF-POOL so SW-DHCP can service DHCP requests coming from VLAN 100. (risk=low)",
+      "2. [PC-NEW] ipconfig /renew — Trigger a new DHCP request on PC-NEW to obtain an IP address from the corrected pool. (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 3,
+    "verified_citations": 0,
+    "failed_citations": 3,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-6472950196cb",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R010"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "192.168.10.0",
+        "192.168.100.0/24"
+      ],
+      "missed_keywords": [
+        "dhcp pool network",
+        "no lease"
+      ],
+      "keyword_hit_rate": 0.5,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 68169,
+    "timestamp": "2026-08-28T12:08:49+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-012",
+    "category": "DHCP",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R003",
+      "R010"
+    ],
+    "expected_root_cause_keywords": [
+      "default-router",
+      "192.168.111.1",
+      "wrong gateway from dhcp",
+      "LAB-POOL"
+    ],
+    "expected_osi_layer": "L3",
+    "expected_category": "DHCP",
+    "expected_fault": "LAB-POOL hands out default-router 192.168.111.1, which is outside the pool's own 192.168.110.0/24 network and belongs to no interface, so every client installs an unreachable gateway.",
+    "fired_rule_ids": [
+      "R003",
+      "R010"
+    ],
+    "ai_root_cause": "The DHCP pool LAB-POOL on R-CAMPUS is configured with an incorrect default-router address of 192.168.111.1, which belongs to an unreachable subnet. R-CAMPUS's active interface for the lab LAN (GigabitEthernet0/0) is 192.168.110.1. Consequently, PC-LEASED receives an invalid default gateway and cannot route traffic off-subnet.",
+    "ai_osi_layer": "L3",
+    "ai_category": "DHCP",
+    "ai_evidence": [
+      {
+        "source_command": "show running-config | section dhcp",
+        "excerpt": " default-router 192.168.111.1",
+        "why_it_matters": "Configures the DHCP pool to distribute 192.168.111.1 as the default gateway to DHCP clients.",
+        "verified": true,
+        "failure_reason": null,
+        "failure_detail": null
+      },
+      {
+        "source_command": "show ip interface brief",
+        "excerpt": "GigabitEthernet0/0         192.168.110.1   YES manual up                    up",
+        "why_it_matters": "Shows that the actual gateway address owned by R-CAMPUS on the lab LAN is 192.168.110.1, not 192.168.111.1.",
+        "verified": true,
+        "failure_reason": null,
+        "failure_detail": null
+      },
+      {
+        "source_command": "ipconfig /all",
+        "excerpt": "   Default Gateway.................: 192.168.111.1",
+        "why_it_matters": "Confirms PC-LEASED actively received and installed the invalid 192.168.111.1 gateway address from DHCP.",
+        "verified": true,
+        "failure_reason": null,
+        "failure_detail": null
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "show ip dhcp pool LAB-POOL",
+    "fix_steps": [
+      "1. [R-CAMPUS] configure terminal; ip dhcp pool LAB-POOL; default-router 192.168.110.1; end — Correct the default-router setting in DHCP pool LAB-POOL to match R-CAMPUS's Gi0/0 interface IP address (192.168.110.1). (risk=low)",
+      "2. [R-CAMPUS] clear ip dhcp binding * — Clear existing active leases so DHCP clients rebind and pick up the updated default gateway address. (risk=medium)",
+      "3. [PC-LEASED] ipconfig /release; ipconfig /renew — Force PC-LEASED to release its current lease and request new parameters from the updated DHCP pool. (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "high",
+    "confidence_was_capped": false,
+    "evidence_integrity": "passed",
+    "total_citations": 3,
+    "verified_citations": 3,
+    "failed_citations": 0,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-b568e1736041",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R010"
+      ],
+      "missed_expected_rule_ids": [
+        "R003"
+      ],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "default-router",
+        "192.168.111.1",
+        "LAB-POOL"
+      ],
+      "missed_keywords": [
+        "wrong gateway from dhcp"
+      ],
+      "keyword_hit_rate": 0.75,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: secondary finding(s) R003 not covered.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 21879,
+    "timestamp": "2026-08-28T12:15:46+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-013",
+    "category": "DHCP",
+    "severity": "Critical",
+    "expected_rule_ids": [
+      "R001",
+      "R010"
+    ],
+    "expected_root_cause_keywords": [
+      "excluded address",
+      "192.168.12.1",
+      "duplicate ip",
+      "192.168.120.50"
+    ],
+    "expected_osi_layer": "L3",
+    "expected_category": "DHCP",
+    "expected_fault": "The exclusion was typed as 192.168.12.1, an address outside the pool network, so 192.168.120.50 was never excluded and DHCP leased the server's address to PC-TEMP.",
+    "fired_rule_ids": [
+      "R001",
+      "R010"
+    ],
+    "ai_root_cause": "The DHCP server on SW-BR has a typo in its excluded-address configuration (ip dhcp excluded-address 192.168.12.1 instead of 192.168.120.50), leaving 192.168.120.50 available in the pool. Consequently, DHCP assigns 192.168.120.50 to PC-TEMP, causing an IP address conflict with statically configured SRV-APP.",
+    "ai_osi_layer": "L3",
+    "ai_category": "DHCP",
+    "ai_evidence": [
+      {
+        "source_command": "SW-BR: show running-config | section dhcp",
+        "excerpt": "ip dhcp excluded-address 192.168.12.1",
+        "why_it_matters": "The excluded-address entry contains a typo (192.168.12.1), failing to exclude SRV-APP's IP address (192.168.120.50) from the DHCP allocation pool.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW-BR: show running-config | section dhcp' is not among the supplied commands (ipconfig /all, ping 192.168.120.1, show ip dhcp conflict, show ip interface brief, show ip route, show running-config | section dhcp, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "SRV-APP: ipconfig /all",
+        "excerpt": "   IPv4 Address....................: 192.168.120.50",
+        "why_it_matters": "Confirms SRV-APP is configured with the static IP address 192.168.120.50.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SRV-APP: ipconfig /all' is not among the supplied commands (ipconfig /all, ping 192.168.120.1, show ip dhcp conflict, show ip interface brief, show ip route, show running-config | section dhcp, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-TEMP: ipconfig /all",
+        "excerpt": "   IPv4 Address....................: 192.168.120.50",
+        "why_it_matters": "Confirms PC-TEMP dynamically acquired the duplicate IP address 192.168.120.50 via DHCP.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-TEMP: ipconfig /all' is not among the supplied commands (ipconfig /all, ping 192.168.120.1, show ip dhcp conflict, show ip interface brief, show ip route, show running-config | section dhcp, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "SW-BR: show ip dhcp conflict",
+        "excerpt": "192.168.120.50   Gratuitous ARP     Aug 24 2026 09:12 AM",
+        "why_it_matters": "Demonstrates that an active IP conflict on 192.168.120.50 was detected by Gratuitous ARP on the switch.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW-BR: show ip dhcp conflict' is not among the supplied commands (ipconfig /all, ping 192.168.120.1, show ip dhcp conflict, show ip interface brief, show ip route, show running-config | section dhcp, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "SW-BR: show ip dhcp binding",
+    "fix_steps": [
+      "1. [SW-BR] configure terminal; no ip dhcp excluded-address 192.168.12.1; ip dhcp excluded-address 192.168.120.50; end — Remove the invalid excluded address entry and exclude SRV-APP's static IP address (192.168.120.50) from the DHCP pool. (risk=low)",
+      "2. [SW-BR] clear ip dhcp conflict 192.168.120.50; clear ip dhcp binding * — Clear the conflict table entry and reset DHCP bindings so dynamic clients release invalid leases. (risk=medium)",
+      "3. [PC-TEMP] ipconfig /release; ipconfig /renew — Force PC-TEMP to release 192.168.120.50 and acquire a non-conflicting IP address from the updated pool. (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 4,
+    "verified_citations": 0,
+    "failed_citations": 4,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-7f7cb336d574",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R010"
+      ],
+      "missed_expected_rule_ids": [
+        "R001"
+      ],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "excluded address",
+        "192.168.12.1",
+        "192.168.120.50"
+      ],
+      "missed_keywords": [
+        "duplicate ip"
+      ],
+      "keyword_hit_rate": 0.75,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: secondary finding(s) R001 not covered; evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 33827,
+    "timestamp": "2026-08-28T12:23:34+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-016",
+    "category": "DNS",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R011"
+    ],
+    "expected_root_cause_keywords": [
+      "wrong dns server",
+      "192.168.150.1",
+      "192.168.150.50",
+      "nslookup timeout"
+    ],
+    "expected_osi_layer": "L7",
+    "expected_category": "DNS",
+    "expected_fault": "PC-USER's resolver is set to the gateway address 192.168.150.1 instead of the DNS server 192.168.150.50, so lookups are sent to a device that answers no queries.",
+    "fired_rule_ids": [
+      "R011"
+    ],
+    "ai_root_cause": "PC-USER is configured to use 192.168.150.1 (the SW-OFFICE default gateway SVI) as its DNS server rather than SRV-DNS at 192.168.150.50. Because SW-OFFICE does not run a DNS server, all DNS resolution requests sent to 192.168.150.1 time out.",
+    "ai_osi_layer": "L7",
+    "ai_category": "DNS",
+    "ai_evidence": [
+      {
+        "source_command": "PC-USER: ipconfig /all",
+        "excerpt": "DNS Servers.....................: 192.168.150.1",
+        "why_it_matters": "Shows that PC-USER is configured with 192.168.150.1 as its DNS resolver.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-USER: ipconfig /all' is not among the supplied commands (ipconfig /all, nslookup srv-dns.lab, ping 192.168.150.50, show ip interface brief, show ip route, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-USER: nslookup srv-dns.lab",
+        "excerpt": "*** Request to 192.168.150.1 timed-out",
+        "why_it_matters": "Confirms DNS requests sent to 192.168.150.1 fail due to timeout as no DNS service is listening on the gateway.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-USER: nslookup srv-dns.lab' is not among the supplied commands (ipconfig /all, nslookup srv-dns.lab, ping 192.168.150.50, show ip interface brief, show ip route, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "SRV-DNS: ipconfig /all",
+        "excerpt": "IPv4 Address....................: 192.168.150.50",
+        "why_it_matters": "Identifies 192.168.150.50 as the IP address of the dedicated DNS server in the topology.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SRV-DNS: ipconfig /all' is not among the supplied commands (ipconfig /all, nslookup srv-dns.lab, ping 192.168.150.50, show ip interface brief, show ip route, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "nslookup srv-dns.lab 192.168.150.50",
+    "fix_steps": [
+      "1. [PC-USER] netsh interface ipv4 set dns name=\"FastEthernet0\" static 192.168.150.50 — Update PC-USER's DNS configuration to point directly to SRV-DNS (192.168.150.50). (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 3,
+    "verified_citations": 0,
+    "failed_citations": 3,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-84f557442032",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R011"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "192.168.150.1",
+        "192.168.150.50"
+      ],
+      "missed_keywords": [
+        "wrong dns server",
+        "nslookup timeout"
+      ],
+      "keyword_hit_rate": 0.5,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 73034,
+    "timestamp": "2026-08-28T12:10:03+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-017",
+    "category": "DNS",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R011"
+    ],
+    "expected_root_cause_keywords": [
+      "unreachable dns",
+      "10.10.10.53",
+      "stale configuration",
+      "192.168.160.50"
+    ],
+    "expected_osi_layer": "L7",
+    "expected_category": "DNS",
+    "expected_fault": "PC-USER's resolver 10.10.10.53 is an address no device or host owns — a leftover from a previous site design — so DNS queries leave for a destination that does not exist.",
+    "fired_rule_ids": [
+      "R011"
+    ],
+    "ai_root_cause": "PC-USER is configured with an invalid DNS server IP address (10.10.10.53), which does not exist in the network. The actual DNS resolver on the plant network is SRV-DNS at 192.168.160.50, which is online and reachable.",
+    "ai_osi_layer": "L7",
+    "ai_category": "DNS",
+    "ai_evidence": [
+      {
+        "source_command": "PC-USER: ipconfig /all",
+        "excerpt": "   DNS Servers.....................: 10.10.10.53",
+        "why_it_matters": "Shows that PC-USER is directing its DNS queries to 10.10.10.53 instead of the local DNS server.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-USER: ipconfig /all' is not among the supplied commands (ipconfig /all, ping 10.10.10.53, ping 192.168.160.50, show ip interface brief, show ip route, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "SRV-DNS: ipconfig /all",
+        "excerpt": "   IPv4 Address....................: 192.168.160.50",
+        "why_it_matters": "Confirms that the actual valid DNS server IP address in VLAN 160 is 192.168.160.50.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SRV-DNS: ipconfig /all' is not among the supplied commands (ipconfig /all, ping 10.10.10.53, ping 192.168.160.50, show ip interface brief, show ip route, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-USER: ping 192.168.160.50",
+        "excerpt": "Reply from 192.168.160.50: bytes=32 time<1ms TTL=128",
+        "why_it_matters": "Proves physical and IP layer reachability from PC-USER to the intended DNS server SRV-DNS.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-USER: ping 192.168.160.50' is not among the supplied commands (ipconfig /all, ping 10.10.10.53, ping 192.168.160.50, show ip interface brief, show ip route, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "nslookup srv-dns 192.168.160.50",
+    "fix_steps": [
+      "1. [PC-USER] netsh interface ip set dns name=\"FastEthernet0\" static 192.168.160.50 — Reconfigure PC-USER's DNS server setting to point to the correct IP address of SRV-DNS (192.168.160.50). (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 3,
+    "verified_citations": 0,
+    "failed_citations": 3,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-4ea1fe9fcaad",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R011"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "10.10.10.53",
+        "192.168.160.50"
+      ],
+      "missed_keywords": [
+        "unreachable dns",
+        "stale configuration"
+      ],
+      "keyword_hit_rate": 0.5,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 26684,
+    "timestamp": "2026-08-28T12:16:14+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-020",
+    "category": "ROUTING",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R006"
+    ],
+    "expected_root_cause_keywords": [
+      "missing route",
+      "192.168.191.0/24",
+      "R-BR",
+      "static routing"
+    ],
+    "expected_osi_layer": "L3",
+    "expected_category": "ROUTING",
+    "expected_fault": "R-BR has no route for 192.168.191.0/24 at all — its routing table contains only connected networks — so HQ-bound traffic is dropped at the branch router.",
+    "fired_rule_ids": [
+      "R006"
+    ],
+    "ai_root_cause": "R-BR is missing a static route for the HQ LAN network (192.168.191.0/24) via next-hop 10.0.0.2. When PC-BR sends packets to SRV-HQ (192.168.191.10), R-BR drops them and returns ICMP Destination Host Unreachable. HQ can reach Branch because R-HQ already has a static route to 192.168.190.0/24.",
+    "ai_osi_layer": "L3",
+    "ai_category": "ROUTING",
+    "ai_evidence": [
+      {
+        "source_command": "R-BR: show ip route",
+        "excerpt": "Gateway of last resort is not set",
+        "why_it_matters": "R-BR's routing table contains only directly connected routes (192.168.190.0/24 and 10.0.0.0/30) and lacks a static or default route for 192.168.191.0/24.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R-BR: show ip route' is not among the supplied commands (ipconfig /all, ping 10.0.0.2, ping 192.168.191.10, show ip interface brief, show ip route). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-BR: ping 192.168.191.10",
+        "excerpt": "Destination host unreachable.",
+        "why_it_matters": "PC-BR receives Destination Host Unreachable messages directly from its default gateway R-BR because R-BR has no route to the destination network.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-BR: ping 192.168.191.10' is not among the supplied commands (ipconfig /all, ping 10.0.0.2, ping 192.168.191.10, show ip interface brief, show ip route). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "R-HQ: show ip route",
+        "excerpt": "S       192.168.190.0/24 [1/0] via 10.0.0.1",
+        "why_it_matters": "Confirms R-HQ has a return route configured for Branch, explaining why HQ can reach Branch while Branch cannot reach HQ.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R-HQ: show ip route' is not among the supplied commands (ipconfig /all, ping 10.0.0.2, ping 192.168.191.10, show ip interface brief, show ip route). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "show ip route 192.168.191.0",
+    "fix_steps": [
+      "1. [R-BR] configure terminal; ip route 192.168.191.0 255.255.255.0 10.0.0.2; end — Add a static route on R-BR directing traffic for the HQ LAN (192.168.191.0/24) to R-HQ's WAN interface (10.0.0.2). (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 3,
+    "verified_citations": 0,
+    "failed_citations": 3,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-4e4a0c9aa70d",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R006"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "missing route",
+        "192.168.191.0/24",
+        "R-BR"
+      ],
+      "missed_keywords": [
+        "static routing"
+      ],
+      "keyword_hit_rate": 0.75,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 72337,
+    "timestamp": "2026-08-28T12:13:07+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-021",
+    "category": "ROUTING",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R006"
+    ],
+    "expected_root_cause_keywords": [
+      "wrong network in static route",
+      "192.168.20.0",
+      "192.168.201.0/24",
+      "R-BR"
+    ],
+    "expected_osi_layer": "L3",
+    "expected_category": "ROUTING",
+    "expected_fault": "R-BR's static route was typed as 192.168.20.0/24 via 10.0.0.2 instead of 192.168.201.0/24, so the destination the branch actually needs is still uncovered while the table looks populated.",
+    "fired_rule_ids": [
+      "R006"
+    ],
+    "ai_root_cause": "The static route on R-BR was misconfigured with a typographical error pointing to 192.168.20.0/24 instead of the actual HQ LAN subnet 192.168.201.0/24. As a result, R-BR has no valid route to reach 192.168.201.10 and drops traffic from PC-BR with an ICMP Destination Host Unreachable error.",
+    "ai_osi_layer": "L3",
+    "ai_category": "ROUTING",
+    "ai_evidence": [
+      {
+        "source_command": "R-BR: show ip route",
+        "excerpt": "S       192.168.20.0/24 [1/0] via 10.0.0.2",
+        "why_it_matters": "Shows that the static route configured on R-BR points to 192.168.20.0/24 instead of 192.168.201.0/24.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R-BR: show ip route' is not among the supplied commands (ipconfig /all, ping 10.0.0.2, ping 192.168.201.10, show ip interface brief, show ip route). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-BR: ping 192.168.201.10",
+        "excerpt": "Destination host unreachable.",
+        "why_it_matters": "Confirms that the first-hop gateway R-BR rejects traffic to 192.168.201.10 because no matching route exists in its routing table.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-BR: ping 192.168.201.10' is not among the supplied commands (ipconfig /all, ping 10.0.0.2, ping 192.168.201.10, show ip interface brief, show ip route). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "R-BR: show ip route",
+    "fix_steps": [
+      "1. [R-BR] configure terminal; no ip route 192.168.20.0 255.255.255.0 10.0.0.2; ip route 192.168.201.0 255.255.255.0 10.0.0.2; end — Remove the errant static route for 192.168.20.0/24 and install the correct static route for the 192.168.201.0/24 subnet via next hop 10.0.0.2. (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 2,
+    "verified_citations": 0,
+    "failed_citations": 2,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-5bc487b45df3",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R006"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "192.168.20.0",
+        "192.168.201.0/24",
+        "R-BR"
+      ],
+      "missed_keywords": [
+        "wrong network in static route"
+      ],
+      "keyword_hit_rate": 0.75,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 28454,
+    "timestamp": "2026-08-28T12:20:48+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-025",
+    "category": "ACL",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R012"
+    ],
+    "expected_root_cause_keywords": [
+      "acl deny",
+      "tcp 445",
+      "BLOCK-SMB",
+      "gi0/0 inbound"
+    ],
+    "expected_osi_layer": "L4",
+    "expected_category": "ACL",
+    "expected_fault": "BLOCK-SMB entry 10 explicitly denies tcp from 192.168.230.0/24 to host 192.168.231.10 eq 445, so the required file-share flow is dropped inbound on Gi0/0.",
+    "fired_rule_ids": [
+      "R012"
+    ],
+    "ai_root_cause": "An extended access list named BLOCK-SMB applied inbound on R-FW GigabitEthernet0/0 explicitly denies TCP port 445 (SMB) traffic from the 192.168.230.0/24 subnet to host 192.168.231.10. Active match counters confirm that connection attempts from PC-USER to the file server are being dropped by rule sequence 10.",
+    "ai_osi_layer": "L4",
+    "ai_category": "ACL",
+    "ai_evidence": [
+      {
+        "source_command": "R-FW: show ip access-lists BLOCK-SMB | include matches",
+        "excerpt": "10 deny tcp 192.168.230.0 0.0.0.255 host 192.168.231.10 eq 445 (148 matches)",
+        "why_it_matters": "Demonstrates that rule 10 is actively matching and dropping SMB (TCP 445) traffic sent from the user subnet to SRV-FILE.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R-FW: show ip access-lists BLOCK-SMB | include matches' is not among the supplied commands (ipconfig /all, ping 192.168.231.10, show ip access-lists, show ip access-lists block-smb | include matches, show ip interface brief, show ip route, show running-config | include access-group). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "R-FW: show ip access-lists",
+        "excerpt": "    10 deny tcp 192.168.230.0 0.0.0.255 host 192.168.231.10 eq 445",
+        "why_it_matters": "Confirms the explicit deny rule configured at sequence 10 within the BLOCK-SMB access list.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R-FW: show ip access-lists' is not among the supplied commands (ipconfig /all, ping 192.168.231.10, show ip access-lists, show ip access-lists block-smb | include matches, show ip interface brief, show ip route, show running-config | include access-group). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "R-FW: show running-config | include access-group",
+        "excerpt": " ip access-group BLOCK-SMB in",
+        "why_it_matters": "Shows that the BLOCK-SMB access list is applied in the inbound direction on GigabitEthernet0/0, filtering ingress user traffic before routing.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R-FW: show running-config | include access-group' is not among the supplied commands (ipconfig /all, ping 192.168.231.10, show ip access-lists, show ip access-lists block-smb | include matches, show ip interface brief, show ip route, show running-config | include access-group). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "show ip access-lists BLOCK-SMB",
+    "fix_steps": [
+      "1. [R-FW] configure terminal; ip access-list extended BLOCK-SMB; no 10; end — Remove the deny rule for TCP port 445 from access-list BLOCK-SMB so SMB traffic matches sequence 20 (permit ip any any). (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 3,
+    "verified_citations": 0,
+    "failed_citations": 3,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-b000e4b3c744",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R012"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": false,
+      "matched_keywords": [
+        "BLOCK-SMB"
+      ],
+      "missed_keywords": [
+        "acl deny",
+        "tcp 445",
+        "gi0/0 inbound"
+      ],
+      "keyword_hit_rate": 0.25,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: only 25% of expected keywords present; evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 63366,
+    "timestamp": "2026-08-28T12:07:41+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-026",
+    "category": "ACL",
+    "severity": "Critical",
+    "expected_rule_ids": [
+      "R012"
+    ],
+    "expected_root_cause_keywords": [
+      "acl wrong interface",
+      "GUEST-FILTER",
+      "gi0/2",
+      "guest to internal"
+    ],
+    "expected_osi_layer": "L4",
+    "expected_category": "ACL",
+    "expected_fault": "GUEST-FILTER is applied inbound on Gi0/2 (the DMZ), an interface guest traffic never enters, so nothing evaluates the deny and guest-to-internal traffic is forwarded.",
+    "fired_rule_ids": [
+      "R012"
+    ],
+    "ai_root_cause": "The access list GUEST-FILTER is misapplied inbound on interface GigabitEthernet0/2 (DMZ) instead of GigabitEthernet0/0 (Guest LAN). Because guest traffic entering Gi0/0 destined for the internal LAN on Gi0/1 never traverses Gi0/2, it bypasses the filter entirely.",
+    "ai_osi_layer": "L4",
+    "ai_category": "ACL",
+    "ai_evidence": [
+      {
+        "source_command": "show running-config | include access-group",
+        "excerpt": "interface GigabitEthernet0/2",
+        "why_it_matters": "Shows that the access-group is bound to the DMZ interface Gi0/2 instead of the guest interface Gi0/0.",
+        "verified": true,
+        "failure_reason": null,
+        "failure_detail": null
+      },
+      {
+        "source_command": "show ip access-lists",
+        "excerpt": "    10 deny ip 192.168.232.0 0.0.0.255 192.168.233.0 0.0.0.255",
+        "why_it_matters": "Confirms the ACL entry intended to block guest subnet access to internal subnet exists and is correctly defined.",
+        "verified": true,
+        "failure_reason": null,
+        "failure_detail": null
+      },
+      {
+        "source_command": "ping 192.168.233.10",
+        "excerpt": "Reply from 192.168.233.10: bytes=32 time<1ms TTL=128",
+        "why_it_matters": "Demonstrates that guest traffic reaches the HR server unblocked because the ACL is not applied to Gi0/0.",
+        "verified": true,
+        "failure_reason": null,
+        "failure_detail": null
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "show running-config interface GigabitEthernet0/0",
+    "fix_steps": [
+      "1. [R-GW] configure terminal; interface GigabitEthernet0/2; no ip access-group GUEST-FILTER in; interface GigabitEthernet0/0; ip access-group GUEST-FILTER in; end — Remove the access list from the DMZ interface GigabitEthernet0/2 and apply it inbound on the Guest LAN interface GigabitEthernet0/0 where guest traffic enters the router. (risk=medium)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "high",
+    "confidence_was_capped": false,
+    "evidence_integrity": "passed",
+    "total_citations": 3,
+    "verified_citations": 3,
+    "failed_citations": 0,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-c2393b989436",
+    "evaluation_status": "completed",
+    "evaluation_result": "CORRECT",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R012"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "GUEST-FILTER",
+        "gi0/2"
+      ],
+      "missed_keywords": [
+        "acl wrong interface",
+        "guest to internal"
+      ],
+      "keyword_hit_rate": 0.5,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "Category and OSI layer match the ground truth, 2/4 expected keywords appear in the diagnosis, and R012 corroborates it.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 72500,
+    "timestamp": "2026-08-28T12:15:24+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-027",
+    "category": "ACL",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R012"
+    ],
+    "expected_root_cause_keywords": [
+      "wrong source address",
+      "192.168.235.20",
+      "192.168.235.21",
+      "PERMIT-DB"
+    ],
+    "expected_osi_layer": "L4",
+    "expected_category": "ACL",
+    "expected_fault": "PERMIT-DB entry 10 permits host 192.168.235.20 instead of the actual workstation 192.168.235.21, so the intended flow falls through to the explicit deny at entry 20.",
+    "fired_rule_ids": [
+      "R012"
+    ],
+    "ai_root_cause": "Access list PERMIT-DB on R-APP contains an incorrect source IP address in entry 10 (192.168.235.20 instead of 192.168.235.21). Because PC-HR's IP address is 192.168.235.21, its traffic misses entry 10 and is dropped by entry 20 (deny ip any any).",
+    "ai_osi_layer": "L4",
+    "ai_category": "ACL",
+    "ai_evidence": [
+      {
+        "source_command": "R-APP: show ip access-lists",
+        "excerpt": "10 permit tcp host 192.168.235.20 host 192.168.236.10 eq 1433",
+        "why_it_matters": "The access list entry only permits source IP 192.168.235.20 to reach the database server on TCP port 1433.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R-APP: show ip access-lists' is not among the supplied commands (ipconfig /all, ping 192.168.236.10, show ip access-lists, show ip access-lists permit-db | include matches, show ip interface brief, show ip route, show running-config | include access-group). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-HR: ipconfig /all",
+        "excerpt": "IPv4 Address....................: 192.168.235.21",
+        "why_it_matters": "The actual IPv4 address assigned to PC-HR is 192.168.235.21, which does not match rule 10.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-HR: ipconfig /all' is not among the supplied commands (ipconfig /all, ping 192.168.236.10, show ip access-lists, show ip access-lists permit-db | include matches, show ip interface brief, show ip route, show running-config | include access-group). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "R-APP: show ip access-lists PERMIT-DB | include matches",
+        "excerpt": "20 deny ip any any (312 matches)",
+        "why_it_matters": "Confirms traffic falling through rule 10 is actively hitting rule 20 and being dropped.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R-APP: show ip access-lists PERMIT-DB | include matches' is not among the supplied commands (ipconfig /all, ping 192.168.236.10, show ip access-lists, show ip access-lists permit-db | include matches, show ip interface brief, show ip route, show running-config | include access-group). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "show ip access-lists PERMIT-DB",
+    "fix_steps": [
+      "1. [R-APP] configure terminal; ip access-list extended PERMIT-DB; no 10; 10 permit tcp host 192.168.235.21 host 192.168.236.10 eq 1433; end — Modify entry 10 in PERMIT-DB to permit host 192.168.235.21 (PC-HR) instead of 192.168.235.20. (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 3,
+    "verified_citations": 0,
+    "failed_citations": 3,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-e6c50f677869",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R012"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "192.168.235.20",
+        "192.168.235.21",
+        "PERMIT-DB"
+      ],
+      "missed_keywords": [
+        "wrong source address"
+      ],
+      "keyword_hit_rate": 0.75,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 76701,
+    "timestamp": "2026-08-28T12:23:00+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-029",
+    "category": "NAT",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R013"
+    ],
+    "expected_root_cause_keywords": [
+      "ip nat outside missing",
+      "gi0/1",
+      "overload",
+      "no translations"
+    ],
+    "expected_osi_layer": "L3",
+    "expected_category": "NAT",
+    "expected_fault": "Gi0/1 is missing ip nat outside, so R-NAT has an inside interface but no outside interface and performs no translation at all.",
+    "fired_rule_ids": [
+      "R013"
+    ],
+    "ai_root_cause": "GigabitEthernet0/1 on R-NAT is missing the 'ip nat outside' configuration. Because no outside NAT interface is defined, NAT translation is never triggered for traffic outbound to the ISP, causing packets to leave with unroutable private IP addresses.",
+    "ai_osi_layer": "L3",
+    "ai_category": "NAT",
+    "ai_evidence": [
+      {
+        "source_command": "R-NAT: show ip nat statistics",
+        "excerpt": "-- Inside Source access-list NAT-INSIDE interface GigabitEthernet0/1 overload",
+        "why_it_matters": "Confirms that dynamic NAT is configured to overload on interface GigabitEthernet0/1, but without 'ip nat outside' enabled on Gi0/1, NAT processing does not occur.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R-NAT: show ip nat statistics' is not among the supplied commands (ipconfig /all, ping 198.51.100.10, ping 203.0.113.1, show ip access-lists, show ip interface brief, show ip nat statistics, show ip nat translations, show ip route, show running-config | include access-group). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-INSIDE: ping 198.51.100.10",
+        "excerpt": "Request timed out.",
+        "why_it_matters": "Demonstrates that packets destined for external networks fail to receive responses because they are not translated to a public IP.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-INSIDE: ping 198.51.100.10' is not among the supplied commands (ipconfig /all, ping 198.51.100.10, ping 203.0.113.1, show ip access-lists, show ip interface brief, show ip nat statistics, show ip nat translations, show ip route, show running-config | include access-group). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "R-NAT: show ip nat translations",
+        "excerpt": "! the translation table is empty",
+        "why_it_matters": "Confirms that no translation entries are created when outbound traffic is generated.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R-NAT: show ip nat translations' is not among the supplied commands (ipconfig /all, ping 198.51.100.10, ping 203.0.113.1, show ip access-lists, show ip interface brief, show ip nat statistics, show ip nat translations, show ip route, show running-config | include access-group). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "show running-config interface GigabitEthernet0/1",
+    "fix_steps": [
+      "1. [R-NAT] configure terminal; interface GigabitEthernet0/1; ip nat outside; end — Configure 'ip nat outside' on GigabitEthernet0/1 so that traffic passing outbound to the ISP is translated. (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 3,
+    "verified_citations": 0,
+    "failed_citations": 3,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-4c086af3c500",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R013"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": false,
+      "matched_keywords": [],
+      "missed_keywords": [
+        "ip nat outside missing",
+        "gi0/1",
+        "overload",
+        "no translations"
+      ],
+      "keyword_hit_rate": 0.0,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: only 0% of expected keywords present; evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 22999,
+    "timestamp": "2026-08-28T12:11:55+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-030",
+    "category": "NAT",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R013"
+    ],
+    "expected_root_cause_keywords": [
+      "nat acl missing",
+      "NAT-INSIDE",
+      "NAT_INSIDE",
+      "name mismatch"
+    ],
+    "expected_osi_layer": "L3",
+    "expected_category": "NAT",
+    "expected_fault": "The NAT rule matches access list NAT-INSIDE, but the router only has NAT_INSIDE (underscore), so the rule selects no traffic and nothing is translated.",
+    "fired_rule_ids": [
+      "R013"
+    ],
+    "ai_root_cause": "The NAT overload rule on R-NAT references access list NAT-INSIDE, but the configured access list is named NAT_INSIDE (with an underscore). Because the referenced ACL does not exist, traffic from the inside network is never matched for translation.",
+    "ai_osi_layer": "L3",
+    "ai_category": "NAT",
+    "ai_evidence": [
+      {
+        "source_command": "R-NAT: show running-config | include ip nat inside source",
+        "excerpt": "ip nat inside source list NAT-INSIDE interface GigabitEthernet0/1 overload",
+        "why_it_matters": "The NAT overload statement references an access list named NAT-INSIDE with a hyphen.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R-NAT: show running-config | include ip nat inside source' is not among the supplied commands (ipconfig /all, ping 198.51.100.10, show ip access-lists, show ip interface brief, show ip nat statistics, show ip route, show running-config | include access-group, show running-config | include ip nat inside source). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "R-NAT: show ip access-lists",
+        "excerpt": "Extended IP access list NAT_INSIDE",
+        "why_it_matters": "The actual access list defined on the router is named NAT_INSIDE with an underscore, causing a name mismatch.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R-NAT: show ip access-lists' is not among the supplied commands (ipconfig /all, ping 198.51.100.10, show ip access-lists, show ip interface brief, show ip nat statistics, show ip route, show running-config | include access-group, show running-config | include ip nat inside source). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "R-NAT: show ip nat statistics",
+        "excerpt": "Hits: 0  Misses: 0",
+        "why_it_matters": "No traffic is hitting the NAT process because the configured ACL reference points to a non-existent list.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R-NAT: show ip nat statistics' is not among the supplied commands (ipconfig /all, ping 198.51.100.10, show ip access-lists, show ip interface brief, show ip nat statistics, show ip route, show running-config | include access-group, show running-config | include ip nat inside source). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "show ip nat translations",
+    "fix_steps": [
+      "1. [R-NAT] configure terminal; no ip nat inside source list NAT-INSIDE interface GigabitEthernet0/1 overload; ip nat inside source list NAT_INSIDE interface GigabitEthernet0/1 overload; end — Update the IP NAT inside source statement to reference the existing access list NAT_INSIDE. (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 3,
+    "verified_citations": 0,
+    "failed_citations": 3,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-17cea74d2b27",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R013"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "NAT-INSIDE",
+        "NAT_INSIDE"
+      ],
+      "missed_keywords": [
+        "nat acl missing",
+        "name mismatch"
+      ],
+      "keyword_hit_rate": 0.5,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 174580,
+    "timestamp": "2026-08-28T12:20:19+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-033",
+    "category": "WIRELESS",
+    "severity": "Critical",
+    "expected_rule_ids": [
+      "R014"
+    ],
+    "expected_root_cause_keywords": [
+      "guest isolation",
+      "GUEST-WIFI",
+      "no isolation acl",
+      "internal vlan"
+    ],
+    "expected_osi_layer": "L2",
+    "expected_category": "WIRELESS",
+    "expected_fault": "The guest SSID GUEST-WIFI has no client isolation and no isolation access list, so guest traffic is routed into the internal VLAN exactly like staff traffic.",
+    "fired_rule_ids": [
+      "R014"
+    ],
+    "ai_root_cause": "The guest SSID GUEST-WIFI on AP-GUEST is configured without client isolation (Client-Isolation: none) and there is no access control list on SW-WIFI or AP-GUEST to block traffic between VLAN 50 (Guest) and VLAN 20 (Internal). Consequently, SW-WIFI routes guest traffic directly to the internal subnet.",
+    "ai_osi_layer": "L2",
+    "ai_category": "WIRELESS",
+    "ai_evidence": [
+      {
+        "source_command": "show wlan summary",
+        "excerpt": "GUEST-WIFI               50    wpa2-psk     yes    none",
+        "why_it_matters": "Shows that SSID GUEST-WIFI has client isolation set to 'none', allowing guest clients to reach destinations outside the guest boundary if routed.",
+        "verified": true,
+        "failure_reason": null,
+        "failure_detail": null
+      },
+      {
+        "source_command": "ping 192.168.20.10",
+        "excerpt": "Reply from 192.168.20.10: bytes=32 time<1ms TTL=128",
+        "why_it_matters": "Confirms active connectivity from PC-GUEST (VLAN 50) to the internal HR server SRV-HR (192.168.20.10).",
+        "verified": true,
+        "failure_reason": null,
+        "failure_detail": null
+      },
+      {
+        "source_command": "show ip route",
+        "excerpt": "C       192.168.20.0/24 is directly connected, Vlan20",
+        "why_it_matters": "Demonstrates that SW-WIFI has active connected routes for both internal and guest VLANs with no filtering applied to prevent inter-VLAN routing.",
+        "verified": true,
+        "failure_reason": null,
+        "failure_detail": null
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "show access-lists",
+    "fix_steps": [
+      "1. [AP-GUEST] configure terminal; wlan GUEST-WIFI; client-isolation; end — Enable client isolation on the guest SSID to prevent guest clients from reaching internal network resources. (risk=low)",
+      "2. [SW-WIFI] configure terminal; ip access-list extended BLOCK-GUEST-TO-INTERNAL; deny ip 192.168.50.0 0.0.0.255 192.168.20.0 0.0.0.255; permit ip any any; interface Vlan50; ip access-group BLOCK-GUEST-TO-INTERNAL in; end — Apply an inbound IP access list on guest interface Vlan50 to block routing into the internal subnet 192.168.20.0/24. (risk=medium)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "high",
+    "confidence_was_capped": false,
+    "evidence_integrity": "passed",
+    "total_citations": 3,
+    "verified_citations": 3,
+    "failed_citations": 0,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-a930120ab3e4",
+    "evaluation_status": "completed",
+    "evaluation_result": "CORRECT",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R014"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "guest isolation",
+        "GUEST-WIFI"
+      ],
+      "missed_keywords": [
+        "no isolation acl",
+        "internal vlan"
+      ],
+      "keyword_hit_rate": 0.5,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "Category and OSI layer match the ground truth, 2/4 expected keywords appear in the diagnosis, and R014 corroborates it.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 27650,
+    "timestamp": "2026-08-28T12:14:11+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-034",
+    "category": "WIRELESS",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R014"
+    ],
+    "expected_root_cause_keywords": [
+      "wrong ssid",
+      "CORP-WIFI",
+      "CORP_WIFI",
+      "never associates"
+    ],
+    "expected_osi_layer": "L2",
+    "expected_category": "WIRELESS",
+    "expected_fault": "PC-SALES is configured for the SSID CORP-WIFI while the access point broadcasts CORP_WIFI (underscore), so the client never associates and its wireless adapter stays unassociated.",
+    "fired_rule_ids": [
+      "R014"
+    ],
+    "ai_root_cause": "There is an SSID character mismatch between the client profile and the access point configuration. PC-SALES is configured to connect to 'CORP-WIFI' (with a hyphen), whereas AP-SALES is broadcasting 'CORP_WIFI' (with an underscore). Consequently, PC-SALES cannot locate the network and fails to associate.",
+    "ai_osi_layer": "L2",
+    "ai_category": "WIRELESS",
+    "ai_evidence": [
+      {
+        "source_command": "netsh wlan show interfaces",
+        "excerpt": "Profile    : CORP-WIFI",
+        "why_it_matters": "Shows that the wireless profile on PC-SALES is explicitly configured for the SSID string CORP-WIFI.",
+        "verified": true,
+        "failure_reason": null,
+        "failure_detail": null
+      },
+      {
+        "source_command": "netsh wlan show interfaces",
+        "excerpt": "Reason     : the network was not found",
+        "why_it_matters": "Confirms PC-SALES fails to associate because no beacon or probe response matching CORP-WIFI is detected.",
+        "verified": true,
+        "failure_reason": null,
+        "failure_detail": null
+      },
+      {
+        "source_command": "show wlan summary",
+        "excerpt": "CORP_WIFI                60    wpa2-ent     no     none",
+        "why_it_matters": "Shows that AP-SALES is configured with the SSID CORP_WIFI using an underscore rather than a hyphen.",
+        "verified": true,
+        "failure_reason": null,
+        "failure_detail": null
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "netsh wlan show profiles",
+    "fix_steps": [
+      "1. [PC-SALES] netsh wlan delete profile name=\"CORP-WIFI\"; netsh wlan connect name=\"CORP_WIFI\" — Update the client profile on PC-SALES to match the active broadcast SSID 'CORP_WIFI' used by the other laptops in the office. (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "high",
+    "confidence_was_capped": false,
+    "evidence_integrity": "passed",
+    "total_citations": 3,
+    "verified_citations": 3,
+    "failed_citations": 0,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-35ef4b360c8f",
+    "evaluation_status": "completed",
+    "evaluation_result": "CORRECT",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R014"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "CORP-WIFI",
+        "CORP_WIFI"
+      ],
+      "missed_keywords": [
+        "wrong ssid",
+        "never associates"
+      ],
+      "keyword_hit_rate": 0.5,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "Category and OSI layer match the ground truth, 2/4 expected keywords appear in the diagnosis, and R014 corroborates it.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 23923,
+    "timestamp": "2026-08-28T12:21:42+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-037",
+    "category": "INTERFACE_CONFIG",
+    "severity": "Critical",
+    "expected_rule_ids": [
+      "R004"
+    ],
+    "expected_root_cause_keywords": [
+      "shutdown interface",
+      "gi0/1",
+      "administratively down",
+      "wan link"
+    ],
+    "expected_osi_layer": "L1",
+    "expected_category": "INTERFACE_CONFIG",
+    "expected_fault": "R-WAN Gi0/1 is administratively down (shutdown was left in place after maintenance), so the only path toward 172.16.20.0/24 is unusable.",
+    "fired_rule_ids": [
+      "R004"
+    ],
+    "ai_root_cause": "The WAN interface GigabitEthernet0/1 on router R-WAN is administratively down (shutdown). This breaks physical and data-link layer connectivity across the 172.16.0.0/30 WAN link to R-DC, preventing traffic from reaching 172.16.20.0/24.",
+    "ai_osi_layer": "L1",
+    "ai_category": "INTERFACE_CONFIG",
+    "ai_evidence": [
+      {
+        "source_command": "R-WAN: show ip interface brief",
+        "excerpt": "GigabitEthernet0/1         172.16.0.1      YES manual administratively down down",
+        "why_it_matters": "Confirms that the WAN interface Gi0/1 on R-WAN has been manually shut down.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'R-WAN: show ip interface brief' is not among the supplied commands (ipconfig /all, ping 172.16.10.1, ping 172.16.20.10, show ip interface brief, show ip route). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-SITE: ping 172.16.20.10",
+        "excerpt": "Destination host unreachable.",
+        "why_it_matters": "Demonstrates that packets sent to the data center network cannot be delivered while the WAN link is down.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-SITE: ping 172.16.20.10' is not among the supplied commands (ipconfig /all, ping 172.16.10.1, ping 172.16.20.10, show ip interface brief, show ip route). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "ping 172.16.0.2",
+    "fix_steps": [
+      "1. [R-WAN] configure terminal; interface GigabitEthernet0/1; no shutdown; end — Re-enable the WAN interface GigabitEthernet0/1 to restore connectivity to R-DC. (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 2,
+    "verified_citations": 0,
+    "failed_citations": 2,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-d19a89575423",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R004"
+      ],
+      "missed_expected_rule_ids": [],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "administratively down",
+        "wan link"
+      ],
+      "missed_keywords": [
+        "shutdown interface",
+        "gi0/1"
+      ],
+      "keyword_hit_rate": 0.5,
+      "osi_agreement": true,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 22477,
+    "timestamp": "2026-08-28T12:11:32+00:00",
+    "invalidated": false,
+    "invalidated_reason": null,
+    "requires_rerun": false
+  },
+  {
+    "case_id": "CASE-038",
+    "category": "INTERFACE_CONFIG",
+    "severity": "High",
+    "expected_rule_ids": [
+      "R004",
+      "R015"
+    ],
+    "expected_root_cause_keywords": [
+      "line protocol down",
+      "vlan85 svi",
+      "svi down",
+      "172.16.85.1"
+    ],
+    "expected_osi_layer": "L1",
+    "expected_category": "INTERFACE_CONFIG",
+    "expected_fault": "The Vlan85 SVI is administratively up but its line protocol is down, so VLAN 85 has no working gateway even though the configuration looks correct.",
+    "fired_rule_ids": [
+      "R004",
+      "R015"
+    ],
+    "ai_root_cause": "Interface Vlan85 on SW-FLOOR is operationally down (line protocol down), which prevents the 172.16.85.0/24 subnet route from being installed in the routing table and renders gateway 172.16.85.1 unreachable for PC-FLOOR.",
+    "ai_osi_layer": "L3",
+    "ai_category": "INTERFACE_CONFIG",
+    "ai_evidence": [
+      {
+        "source_command": "SW-FLOOR: show ip interface brief",
+        "excerpt": "Vlan85 172.16.85.1 YES manual down down",
+        "why_it_matters": "Shows that interface Vlan85 is operationally down in both status and line protocol, preventing it from processing traffic or acting as a gateway.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW-FLOOR: show ip interface brief' is not among the supplied commands (ipconfig /all, ping 172.16.85.1, ping 172.16.86.1, show ip interface brief, show ip route, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "SW-FLOOR: show ip route",
+        "excerpt": "C 172.16.86.0/24 is directly connected, Vlan86",
+        "why_it_matters": "Because Vlan85 line protocol is down, its directly connected subnet 172.16.85.0/24 is missing from the routing table.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'SW-FLOOR: show ip route' is not among the supplied commands (ipconfig /all, ping 172.16.85.1, ping 172.16.86.1, show ip interface brief, show ip route, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      },
+      {
+        "source_command": "PC-FLOOR: ping 172.16.85.1",
+        "excerpt": "Request timed out.",
+        "why_it_matters": "Confirms PC-FLOOR cannot reach its default gateway address.",
+        "verified": false,
+        "failure_reason": "unknown_source_command",
+        "failure_detail": "'PC-FLOOR: ping 172.16.85.1' is not among the supplied commands (ipconfig /all, ping 172.16.85.1, ping 172.16.86.1, show ip interface brief, show ip route, show vlan brief). The excerpt text does appear in other supplied output, so this is a mis-attributed citation rather than a fabricated one."
+      }
+    ],
+    "ai_insufficient_evidence": false,
+    "next_command": "show interfaces Vlan85",
+    "fix_steps": [
+      "1. [SW-FLOOR] configure terminal; interface Vlan85; no shutdown; end — Re-enable/bounce the SVI to bring its line protocol up and reinstate the connected route for VLAN 85. (risk=low)"
+    ],
+    "model_confidence": "high",
+    "effective_confidence": "low",
+    "confidence_was_capped": true,
+    "evidence_integrity": "failed",
+    "total_citations": 3,
+    "verified_citations": 0,
+    "failed_citations": 3,
+    "reconciliation": "agree",
+    "provider": "gemini",
+    "model": "gemini-3.6-flash",
+    "prompt_version": "1.2.1",
+    "prompt_sha256": "cd1c5fe35cacd05e31a324ceeb20296e4d26a78cc3524c879cb764b4a3d23e9c",
+    "diagnosis_id": "DIAG-38f90eed1711",
+    "evaluation_status": "completed",
+    "evaluation_result": "PARTIAL",
+    "agreement": {
+      "rule_agreement": true,
+      "matched_expected_rule_ids": [
+        "R004"
+      ],
+      "missed_expected_rule_ids": [
+        "R015"
+      ],
+      "keyword_agreement": true,
+      "matched_keywords": [
+        "line protocol down",
+        "172.16.85.1"
+      ],
+      "missed_keywords": [
+        "vlan85 svi",
+        "svi down"
+      ],
+      "keyword_hit_rate": 0.5,
+      "osi_agreement": false,
+      "category_agreement": true
+    },
+    "classification_reason": "The diagnosis overlaps the ground truth but is not fully correct: OSI layer differs; secondary finding(s) R015 not covered; evidence integrity failed.",
+    "error_type": null,
+    "error_message": null,
+    "attempts": 1,
+    "latency_ms": 31585,
+    "timestamp": "2026-08-28T12:17:23+00:00",
     "invalidated": false,
     "invalidated_reason": null,
     "requires_rerun": false

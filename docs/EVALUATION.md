@@ -10,8 +10,8 @@ stated as missing rather than estimated.
 | Half | Status | Figure |
 |---|---|---|
 | Deterministic rule engine | **validated, complete** | 40/40 cases, golden expected-vs-fired **PASS**, rule pass rate **1.0** |
-| Live Gemini evaluation | **incomplete — quota blocked** | **0 of 40** official evaluations; no accuracy figure exists |
-| Human review | **incomplete** | 0 recorded reviews; 5 genuine corrections required |
+| Live Gemini evaluation | **incomplete — partial coverage** | **22 of 40** official evaluations; accuracy is withheld |
+| Human review | **complete for the recorded sample** | 10 reviews: 5 accepted, 2 edited, 3 rejected; 5 genuine corrections |
 
 ---
 
@@ -89,7 +89,7 @@ Two supporting guards:
   text, so the AI is never asked to diagnose something it cannot see.
 - `test_cases_csv_sync.py` — the generated CSV deliverable must match `cases.json`.
 
-Test suite: **532 offline tests pass**; 9 live-provider tests are deselected by default
+Test suite: **540 offline tests pass**; 9 live-provider tests are deselected by default
 (`-m 'not live'` in `pyproject.toml`), so an ordinary run never calls Gemini.
 
 ## 4. Evidence verification
@@ -104,8 +104,8 @@ line that is not there is not forgiven. Failures are recorded with a reason —
 text. Per-diagnosis verdict: `passed` · `partial` · `failed`.
 
 Corpus-wide the evaluation records total citations, verified citations, failed citations and a
-verification rate. **Those figures are currently all zero, because no official evaluation record
-exists.**
+verification rate. Among the 20 official records, evidence integrity is **passed for 4 and
+failed for 16**; failed citations remain in the records and are not discarded.
 
 An important scope limit: verification proves a citation is *real*, not that the conclusion drawn
 from it is *right*. A model can quote genuine output and still misread it. That is one reason the
@@ -174,38 +174,37 @@ Reviews are collected by a person working through
 `python -m backend.scripts.review_candidates` in a terminal. **No review has been fabricated to
 satisfy the requirement.**
 
-Current state: **0 recorded reviews**, 0 corrections against a requirement of 5. The dashboard
-reports *"Human review data incomplete"* and `data/responsible_ai_log.json` does not exist, so the
-correction log renders an empty state rather than illustrative examples.
+Current state: **10 recorded reviews**: 5 accepted, 2 edited and 3 rejected. The stored
+Responsible AI log contains **5 genuine corrections**, all derived from genuine Gemini
+diagnoses and stored review records.
 
 ## 8. Current evaluation coverage
 
-**Official Gemini evaluations: 0 of 40.** There is no AI accuracy figure, and the absence is not
-a placeholder for a good one — it is simply unmeasured.
+**Official Gemini evaluation coverage: 22/40 cases.** There is no full-dataset AI accuracy
+figure because 18 cases remain unevaluated.
 
 `dashboard_service.ai_evaluation_summary()` reports:
 
 | Field | Value |
 |---|---|
-| `evaluated` / `total` | **0 / 40** |
-| `remaining` | 40 |
-| `status` | `NOT_STARTED — Gemini quota limited` |
+| `evaluated` / `total` | **22 / 40** |
+| `remaining` | 18 |
+| `status` | `PARTIAL — Gemini quota limited` |
 | `accuracy` | `null` — rendered in the UI as *withheld* |
-| `results` (CORRECT / PARTIAL / INCORRECT / UNABLE_TO_EVALUATE) | 0 / 0 / 0 / 0 |
-| `stored_records` | 3 |
-| `invalidated` | 1 — `CASE-001` |
-| `failed_calls` | 2 — `CASE-002`, `CASE-003` |
+| `results` (CORRECT / PARTIAL / INCORRECT / UNABLE_TO_EVALUATE) | 3 / 19 / 0 / 0 |
+| `stored_records` | 23 |
+| `invalidated` | 0 active; superseded CASE-001 retained in archive |
+| `failed_calls` | 1 — `CASE-005` |
 
 ### What is on disk, and why
 
 | Record set | State | Why it is kept |
 |---|---|---|
 | `evaluation_results.prompt-1.0.0.archive.json` | 27 records, prompt v1.0.0 | Retained for auditability. Superseded by a prompt revision, so not official — but not deleted either |
-| `evaluation_results.json` → `CASE-001` | completed, prompt **1.2.0**, `invalidated: true`, `requires_rerun: true` | Produced under a prompt version that was subsequently corrected. Kept as evidence of what actually happened; excluded from every metric |
-| `evaluation_results.json` → `CASE-002`, `CASE-003` | `evaluation_status: failed`, quota error | Failed calls are recorded, not hidden. Counted as attempts, never as evaluations |
-| Any record under prompt **1.2.1** | none | The current prompt version has not been run against the dataset |
+| `evaluation_results.prompt-1.2.0.invalidated.archive.json` | CASE-001, prompt **1.2.0**, `invalidated: true`, `requires_rerun: true` | Superseded record retained exactly for auditability and excluded from metrics |
+| `evaluation_results.json` | 22 completed prompt **1.2.1** Gemini records plus CASE-005 failed quota call | Completed records are official; failed calls are retained but never evaluated |
 
-`is_official = succeeded and not invalidated`. Neither an invalidated record nor a failed call
+`is_official = succeeded and not invalidated` for the current Gemini prompt contract. Neither an invalidated record nor a failed call
 can enter a result bucket or an accuracy denominator, and
 `tests/test_dashboard.py::test_invalidated_records_cannot_enter_the_accuracy_denominator` asserts
 it structurally so a future edit cannot quietly reintroduce the problem.
@@ -219,8 +218,7 @@ window. The quota is scoped **per project, not per key**, so issuing a new key d
 A 40-case batch does not fit inside it, and the batch that was attempted exhausted it partway
 through.
 
-**Live Gemini evaluation is currently incomplete because the configured free-tier project/model
-quota is limited.**
+**Live Gemini evaluation is incomplete because quota exhaustion stopped the continuation after 22 of 40 cases.**
 
 ### Why accuracy is withheld rather than extrapolated
 
@@ -239,11 +237,11 @@ python -m backend.scripts.verify_evaluation_integrity
 
 Read-only. It recomputes the official / invalidated / failed classification directly from the
 files on disk and asserts field-by-field equality with what the dashboard service reports, checks
-the archive is intact, checks no v1.2.1 record has appeared, and checks neither payload contains a
-credential token. **33 of 33 checks pass.**
+the archives and Responsible AI log, and checks neither payload contains a credential token.
+All checks pass.
 
 ```bash
-python -m pytest -v                                       # 532 passed, 9 deselected
+python -m pytest -v                                       # 540 passed, 9 deselected
 python -m backend.app.rules.cli --all --check-expected     # the golden comparison
 python -m backend.scripts.build_evaluation_reports         # reports, from stored results only
 ```

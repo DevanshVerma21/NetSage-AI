@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { createReview, getDiagnosis } from '../api/client.js'
+import { createReview, getCase, getDiagnosis } from '../api/client.js'
 import { AIDiagnosisCard } from '../components/AIDiagnosisCard.jsx'
 import { RuleFindingCard } from '../components/RuleFindingCard.jsx'
 import { ReviewForm } from '../components/ReviewForm.jsx'
 import { StatusBadge, VerdictBadge } from '../components/StatusBadge.jsx'
-import { Button, ErrorNotice, Loading, Panel } from '../components/ui.jsx'
+import { Button, ErrorNotice, Loading, Meta, Panel } from '../components/ui.jsx'
 
 /**
  * The human review gate.
@@ -24,6 +24,7 @@ export function HumanReview() {
   const [params] = useSearchParams()
 
   const [diagnosis, setDiagnosis] = useState(null)
+  const [caseData, setCaseData] = useState(null)
   const [loadError, setLoadError] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -40,7 +41,11 @@ export function HumanReview() {
     let active = true
     setLoading(true)
     getDiagnosis(diagnosisId)
-      .then((data) => active && setDiagnosis(data))
+      .then(async (data) => {
+        if (!active) return
+        setDiagnosis(data)
+        if (data.case_id) setCaseData(await getCase(data.case_id))
+      })
       .catch((error) => active && setLoadError(error))
       .finally(() => active && setLoading(false))
     return () => {
@@ -119,6 +124,19 @@ export function HumanReview() {
 
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="space-y-5">
+          {caseData && (
+            <Panel tone="warn" label="Case" title={`${caseData.case_id} — ${caseData.title}`}>
+              <div className="space-y-3">
+                <p className="text-sm leading-relaxed text-slate-200">{caseData.symptom}</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Meta label="Known ground truth">{caseData.expected_fault}</Meta>
+                  <Meta label="Expected classification">
+                    {caseData.concept_tag} · {caseData.osi_layer}
+                  </Meta>
+                </div>
+              </div>
+            </Panel>
+          )}
           <Panel
             tone="ai"
             label="Under review — an AI proposal"

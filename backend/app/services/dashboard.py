@@ -208,9 +208,17 @@ def ai_evaluation_summary(records: Optional[list[EvaluationRecord]] = None) -> d
 
 
 def human_review_summary() -> dict:
-    """Counts from the stored review records. Never a target, always the actual total."""
+    """Counts from the stored review records. Never a target, always the actual total.
+
+    ``corrections`` applies the same two filters as
+    ``backend/scripts/build_responsible_ai.py``: the verdict must be ``edited`` or ``rejected``,
+    and the diagnosis corrected must have come from a real provider call. Without the second
+    filter the dashboard could report 5/5 while the log builder still refused to write, which
+    would make the headline figure the more optimistic of two disagreeing counts.
+    """
     reviews = review_service.all_records()
-    corrections = [r for r in reviews if r.verdict in CORRECTION_VERDICTS]
+    corrections = review_service.genuine_corrections(reviews)
+    excluded = len(review_service.synthetic_corrections(reviews))
     stats = review_service.agreement_stats()
 
     return {
@@ -219,6 +227,7 @@ def human_review_summary() -> dict:
         "edited": sum(1 for r in reviews if r.verdict == "edited"),
         "rejected": sum(1 for r in reviews if r.verdict == "rejected"),
         "corrections": len(corrections),
+        "corrections_excluded_as_synthetic": excluded,
         "required_corrections": REQUIRED_CORRECTIONS,
         "corrections_complete": len(corrections) >= REQUIRED_CORRECTIONS,
         "incomplete_message": (
@@ -238,6 +247,40 @@ def responsible_ai_log() -> dict:
     correction threshold, so its absence is itself the honest answer and is reported as an
     empty state rather than filled with examples.
     """
+    genuine_reviews = review_service.genuine_corrections()
+    if genuine_reviews:
+        entries = []
+        for review in genuine_reviews:
+            diagnosis = review_service.diagnosis_repo.get(review.diagnosis_id)
+            if diagnosis is None:
+                continue
+            correction = review.corrected_root_cause or review.corrected_category or review.corrected_osi_layer
+            if review.corrected_rule_ids:
+                correction = correction or f"Rule scope corrected to: {', '.join(review.corrected_rule_ids)}"
+            if review.corrected_fix_steps:
+                correction = correction or "Corrected fix steps supplied by reviewer."
+            entries.append(
+                {
+                    "case_id": review.case_id,
+                    "diagnosis_id": review.diagnosis_id,
+                    "ai_output": diagnosis.ai.root_cause,
+                    "human_decision": review.verdict,
+                    "correction": correction or "Diagnosis rejected; no replacement supplied.",
+                    "reason": review.reason_code,
+                    "lesson": review.notes,
+                }
+            )
+        return {
+            "available": bool(entries),
+            "generated_at": None,
+            "source": "stored_review_records",
+            "note": "Built directly from genuine edited and rejected review records.",
+            "required_corrections": REQUIRED_CORRECTIONS,
+            "total_corrections": len(entries),
+            "corrections": entries,
+            "empty_state": None if entries else "No genuine human correction has been recorded yet.",
+        }
+
     path = _data_path(RESPONSIBLE_AI_LOG)
     try:
         payload = read_json(path, default=None)
